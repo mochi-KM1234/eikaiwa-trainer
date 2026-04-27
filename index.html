@@ -1,0 +1,2290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>英会話フレーズトレーナー</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #2563eb; --primary-light: #eff6ff;
+      --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+      --text: #1f2937; --text-sub: #6b7280; --border: #e5e7eb;
+      --bg: #f3f4f6; --card: #ffffff; --radius: 14px;
+      --shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #root { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+    .header { background: var(--card); border-bottom: 1px solid var(--border); padding: 14px 16px;
+      display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 100; }
+    .header-title { font-size: 17px; font-weight: 700; flex: 1; }
+
+    .nav { background: var(--card); border-top: 1px solid var(--border); display: flex;
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px; z-index: 100; }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 9px 4px 12px; border: none; background: none; font-size: 10px;
+      color: var(--text-sub); cursor: pointer; gap: 3px; transition: color .15s; }
+    .nav-item.active { color: var(--primary); }
+    .nav-item svg { width: 22px; height: 22px; }
+
+    .content { flex: 1; padding: 16px; padding-bottom: 80px; overflow-y: auto; }
+
+    .card { background: var(--card); border-radius: var(--radius); padding: 16px;
+      box-shadow: var(--shadow); margin-bottom: 12px; }
+
+    .btn { border: none; border-radius: 10px; padding: 13px 20px; font-size: 15px;
+      font-weight: 600; cursor: pointer; display: inline-flex; align-items: center;
+      justify-content: center; gap: 6px; transition: opacity .1s, transform .1s;
+      -webkit-user-select: none; user-select: none; font-family: inherit; }
+    .btn:active { opacity: .78; transform: scale(.97); }
+    .btn:disabled { opacity: .4; cursor: default; }
+    .btn-primary { background: var(--primary); color: white; width: 100%; }
+    .btn-success { background: var(--success); color: white; }
+    .btn-warning { background: var(--warning); color: white; }
+    .btn-danger  { background: var(--danger); color: white; }
+    .btn-purple  { background: #7c3aed; color: white; }
+    .btn-ghost   { background: white; color: var(--text); border: 1.5px solid var(--border); }
+    .btn-sm { padding: 8px 14px; font-size: 13px; border-radius: 8px; }
+    .w-full { width: 100%; }
+
+    .score-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 16px; }
+    .score-btn { border: none; border-radius: 12px; padding: 16px 8px; font-size: 13px;
+      font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center;
+      gap: 4px; transition: opacity .1s, transform .1s; -webkit-user-select: none; font-family: inherit; }
+    .score-btn:active { opacity: .78; transform: scale(.97); }
+    .score-btn .emoji { font-size: 22px; }
+    .score-again { background: #fee2e2; color: var(--danger); }
+    .score-hard  { background: #fef3c7; color: #92400e; }
+    .score-easy  { background: #dcfce7; color: #166534; }
+
+    .input { width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 12px 14px; font-size: 15px; font-family: inherit; outline: none;
+      background: white; transition: border-color .2s; color: var(--text); }
+    .input:focus { border-color: var(--primary); }
+    textarea.input { resize: none; }
+
+    .tag { display: inline-block; background: var(--primary-light); color: var(--primary);
+      padding: 4px 12px; border-radius: 99px; font-size: 13px; font-weight: 600; }
+
+    .study-card { background: var(--card); border-radius: 18px; padding: 28px 20px 24px;
+      text-align: center; box-shadow: 0 2px 16px rgba(0,0,0,.07); margin-bottom: 16px; }
+    .study-cat { font-size: 12px; color: var(--text-sub); margin-bottom: 10px; letter-spacing:.05em; }
+    .study-jp { font-size: 22px; font-weight: 700; line-height: 1.5; margin-bottom: 14px; }
+    .hint-area { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; min-height: 32px; }
+    .answer-en { font-size: 20px; font-weight: 700; color: var(--primary); line-height: 1.5; }
+
+    .compare-box { background: #f8faff; border: 1.5px solid #c7d7f5; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+    .compare-row { display: flex; gap: 10px; align-items: baseline; margin-bottom: 6px; font-size: 14px; }
+    .compare-row:last-child { margin-bottom: 0; }
+    .compare-label { font-size: 11px; font-weight: 700; color: var(--text-sub); min-width: 60px;
+      background: var(--border); padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
+    .compare-text { flex: 1; line-height: 1.5; }
+    .compare-text.correct { color: var(--primary); font-weight: 700; }
+    .compare-text.user-ans { color: var(--text); }
+
+    .prog-wrap { background: var(--border); border-radius: 99px; height: 5px; flex: 1; }
+    .prog-fill { height: 100%; border-radius: 99px; background: var(--primary); transition: width .4s; }
+
+    .feedback-box { border-radius: var(--radius); padding: 14px 16px; margin-top: 10px; }
+    .fb-perfect { background: #f0fdf4; border: 1.5px solid #86efac; }
+    .fb-good    { background: #eff6ff; border: 1.5px solid #93c5fd; }
+    .fb-ok      { background: #fffbeb; border: 1.5px solid #fcd34d; }
+    .fb-retry   { background: #fff1f2; border: 1.5px solid #fca5a5; }
+
+    .idiom-box { background: #fdf4ff; border: 1.5px solid #e9d5ff; border-radius: var(--radius); padding: 14px 16px; margin-top: 10px; }
+    .idiom-item { margin-bottom: 10px; }
+    .idiom-item:last-child { margin-bottom: 0; }
+    .idiom-term { font-size: 14px; font-weight: 700; color: #7c3aed; margin-bottom: 3px; }
+    .idiom-note { font-size: 13px; color: var(--text); line-height: 1.6; }
+
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 20px; }
+    .stat-card { background: var(--card); border-radius: var(--radius); padding: 14px;
+      text-align: center; box-shadow: var(--shadow); }
+    .stat-num { font-size: 26px; font-weight: 700; color: var(--primary); }
+    .stat-label { font-size: 11px; color: var(--text-sub); margin-top: 3px; }
+
+    .cat-btn { display: flex; align-items: center; background: white; border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 14px 16px; font-size: 14px; cursor: pointer; width: 100%;
+      margin-bottom: 8px; font-weight: 500; font-family: inherit; transition: all .15s; text-align: left; }
+    .cat-btn:active { border-color: var(--primary); background: var(--primary-light); }
+
+    .phrase-item { background: var(--card); border-radius: var(--radius); padding: 14px 16px;
+      margin-bottom: 8px; box-shadow: var(--shadow); }
+
+    .section-label { font-size: 12px; font-weight: 700; color: var(--text-sub);
+      text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
+
+    .session-done { text-align: center; padding: 48px 20px; }
+    .session-done .big-emoji { font-size: 64px; margin-bottom: 16px; }
+    .session-done h2 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+
+    .flex { display: flex; } .gap-8 { gap: 8px; } .gap-6 { gap: 6px; }
+    .items-center { align-items: center; } .justify-between { justify-content: space-between; }
+    .justify-center { justify-content: center; } .flex-1 { flex: 1; }
+    .mt-8 { margin-top: 8px; } .mt-12 { margin-top: 12px; } .mt-16 { margin-top: 16px; }
+    .mb-8 { margin-bottom: 8px; } .mb-12 { margin-bottom: 12px; } .mb-16 { margin-bottom: 16px; }
+    .text-sm { font-size: 13px; } .text-xs { font-size: 11px; }
+    .text-sub { color: var(--text-sub); } .font-bold { font-weight: 700; }
+    .text-center { text-align: center; } .line-h16 { line-height: 1.6; }
+    .divider { height: 1px; background: var(--border); margin: 14px 0; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useCallback } = React;
+
+// ── Keys ──────────────────────────────────────────────────────────
+const KEYS = { progress:'ept_prog_v4', logs:'ept_logs_v4' };
+
+// ── Utils ─────────────────────────────────────────────────────────
+const uid = () => Math.random().toString(36).slice(2,10);
+const now = () => new Date().toISOString();
+const daysLater = (d) => new Date(Date.now() + d*86400000).toISOString();
+
+const STOP = new Set(['the','a','an','to','of','for','and','is','are','i','you','me','my','we',
+  'this','that','it','in','on','with','some','more','could','would','may','like','please','have',
+  'be','do','at','by','from','or','not','so','if','as','up','out','but','can','just','here','there',
+  'get','all','had','has','him','his','her','our','its','was','say','they','she','what','when',
+  'how','who','which','very','also','back','into','than','then','now','only','over','such','down',
+  'no','any','been','come','give','take','where','while','about','should','make','first','well',
+  'same','came','away','these','other','most','did','does','need','want','go','let','put','see',
+  'use','way','one','new','will','still','each','those']);
+
+function guessKw(english) {
+  return [...new Set(english.toLowerCase().replace(/[^a-z0-9\s'-]/g,' ').split(/\s+/)
+    .filter(w => w.length >= 3 && !STOP.has(w)).slice(0,4))];
+}
+function norm(s) {
+  return (s||'').toLowerCase().replace(/['']/g,"'").replace(/[^a-z0-9\s']/g,' ').replace(/\s+/g,' ').trim();
+}
+
+// ── Category data ─────────────────────────────────────────────────
+const CAT_DATA = [
+  { id:'c1',  name:'聞き返しフレーズ',           sortOrder:1  },
+  { id:'c2',  name:'空港フレーズ',               sortOrder:2  },
+  { id:'c3',  name:'機内フレーズ',               sortOrder:3  },
+  { id:'c4',  name:'建築の職場フレーズ',         sortOrder:4  },
+  { id:'c5',  name:'入国審査フレーズ',           sortOrder:5  },
+  { id:'c6',  name:'ホテルフレーズ',             sortOrder:6  },
+  { id:'c7',  name:'移動・タクシーフレーズ',     sortOrder:7  },
+  { id:'c8',  name:'カフェ・レストランフレーズ', sortOrder:8  },
+  { id:'c9',  name:'道に迷った時フレーズ',       sortOrder:9  },
+  { id:'c10', name:'軽い雑談フレーズ',           sortOrder:10 },
+];
+
+// ── Phrase data ───────────────────────────────────────────────────
+const PHRASE_DATA = [
+
+  // ── c1 聞き返しフレーズ ──────────────────────────────────────────
+
+  {
+    id:'p001', english:"Could you say that again?",
+    japanese:"もう一度言っていただけますか？", categoryId:'c1',
+    idioms:[{ term:"Could you ...?", note:"「Can you」より丁寧な依頼表現。ビジネスや初対面では「Could you」を使うのが基本です。" }],
+    variations:[
+      { label:"より丁寧", text:"I'm sorry, could you say that once more?" },
+      { label:"カジュアル", text:"Sorry, can you say that again?" }
+    ]
+  },
+  {
+    id:'p002', english:"Could you speak more slowly?",
+    japanese:"もう少しゆっくり話していただけますか？", categoryId:'c1',
+    idioms:[{ term:"speak more slowly", note:"「slow down」という句動詞でも同じ意味。例: Could you slow down a little?" }],
+    variations:[
+      { label:"別の言い方", text:"Could you slow down a little, please?" },
+      { label:"カジュアル", text:"Can you speak slower?" }
+    ]
+  },
+  {
+    id:'p003', english:"What do you mean by that?",
+    japanese:"それはどういう意味ですか？", categoryId:'c1',
+    idioms:[{ term:"What do you mean by ...?", note:"相手の発言の意図を確認するフレーズ。やや直接的なのでトーンに注意。" }],
+    variations:[
+      { label:"より丁寧", text:"Could you clarify what you mean by that?" },
+      { label:"別の言い方", text:"I'm not sure I follow — could you explain?" }
+    ]
+  },
+  {
+    id:'p004', english:"Sorry, I didn't catch that.",
+    japanese:"すみません、聞き取れませんでした。", categoryId:'c1',
+    idioms:[{ term:"catch (聞き取る)", note:"「catch」は「捕まえる」以外に「聞き取る」の意味があります。例: I didn't catch your name." }],
+    variations:[
+      { label:"より丁寧", text:"I'm sorry, I didn't quite catch that. Could you repeat it?" },
+      { label:"カジュアル", text:"Sorry, I missed that." }
+    ]
+  },
+  {
+    id:'p005', english:"Could you repeat that, please?",
+    japanese:"もう一度繰り返していただけますか？", categoryId:'c1',
+    idioms:[{ term:"repeat", note:"「Could you say that again?」と同じ意味。末尾の「please」でさらに丁寧になります。" }],
+    variations:[
+      { label:"より丁寧", text:"I beg your pardon — could you repeat that?" },
+      { label:"カジュアル", text:"Can you say that again?" }
+    ]
+  },
+  {
+    id:'p006', english:"I'm not sure I understood. Could you rephrase that?",
+    japanese:"うまく理解できませんでした。言い換えていただけますか？", categoryId:'c1',
+    idioms:[{ term:"rephrase", note:"「別の言葉で言い直す」こと。repeat（同じ言葉を繰り返す）とは違い、表現を変えてほしいときに使います。" }],
+    variations:[
+      { label:"カジュアル", text:"I didn't quite get that — could you say it differently?" },
+      { label:"別の言い方", text:"Could you put that another way?" }
+    ]
+  },
+  {
+    id:'p007', english:"Could you spell that for me?",
+    japanese:"それをスペルアウトしていただけますか？", categoryId:'c1',
+    idioms:[{ term:"spell (スペルアウトする)", note:"名前や専門用語を一字一字確認したいときに便利。例: How do you spell your last name?" }],
+    variations:[
+      { label:"より丁寧", text:"I'm sorry, could you spell that out for me?" },
+      { label:"別の言い方", text:"How do you spell that?" }
+    ]
+  },
+  {
+    id:'p008', english:"Could you write it down for me?",
+    japanese:"それを書き留めていただけますか？", categoryId:'c1',
+    idioms:[{ term:"write down", note:"「書き留める」という句動詞。固有名詞や数字をメモに書いてもらうときに使います。" }],
+    variations:[
+      { label:"より丁寧", text:"Would you mind writing that down for me?" },
+      { label:"カジュアル", text:"Can you write that down?" }
+    ]
+  },
+  {
+    id:'p009', english:"I'm sorry, could you say that once more?",
+    japanese:"すみません、もう一度おっしゃっていただけますか？", categoryId:'c1',
+    idioms:[{ term:"once more", note:"「again」と同じ意味ですが少しフォーマルな印象を与えます。謝罪の「I'm sorry」を先につけると非常に丁寧です。" }],
+    variations:[
+      { label:"カジュアル", text:"Sorry, say that again?" },
+      { label:"別の言い方", text:"Could you repeat that one more time?" }
+    ]
+  },
+  {
+    id:'p010', english:"Could you say that in a different way?",
+    japanese:"別の言い方でおっしゃっていただけますか？", categoryId:'c1',
+    idioms:[{ term:"in a different way", note:"「rephrase」の口語的な言い方。「differently」に置き換えることもできます: Could you say that differently?" }],
+    variations:[
+      { label:"別の言い方", text:"Could you put it another way?" },
+      { label:"より丁寧", text:"Would you be able to explain that differently?" }
+    ]
+  },
+
+  // ── c2 空港フレーズ ──────────────────────────────────────────────
+
+  {
+    id:'p011', english:"Where is the check-in counter?",
+    japanese:"チェックインカウンターはどこですか？", categoryId:'c2',
+    idioms:[{ term:"check-in counter", note:"チェックインの受付カウンター。「check in」は動詞（する）、「check-in」は名詞・形容詞（の）として使います。" }],
+    variations:[
+      { label:"別の言い方", text:"Excuse me, could you tell me where the check-in counter is?" },
+      { label:"カジュアル", text:"Where do I check in?" }
+    ]
+  },
+  {
+    id:'p012', english:"I'd like to check in, please.",
+    japanese:"チェックインをお願いします。", categoryId:'c2',
+    idioms:[{ term:"I'd like to ...", note:"「I want to」の丁寧表現。サービスを受ける場面で幅広く使えます。「I would like to」の短縮形です。" }],
+    variations:[
+      { label:"より丁寧", text:"Good morning, I would like to check in, please." },
+      { label:"カジュアル", text:"I'm here to check in." }
+    ]
+  },
+  {
+    id:'p013', english:"Where is boarding gate B12?",
+    japanese:"B12番搭乗ゲートはどこですか？", categoryId:'c2',
+    idioms:[{ term:"boarding gate", note:"搭乗ゲート。「board（乗り込む）」の名詞形。搭乗券は「boarding pass」。" }],
+    variations:[
+      { label:"別の言い方", text:"Excuse me, how do I get to gate B12?" },
+      { label:"より丁寧", text:"Could you tell me where boarding gate B12 is?" }
+    ]
+  },
+  {
+    id:'p014', english:"What time does boarding start?",
+    japanese:"搭乗はいつ始まりますか？", categoryId:'c2',
+    idioms:[{ term:"boarding (搭乗)", note:"飛行機への乗り込み手続き全体。アナウンスでは「We will now begin boarding for flight ...」のように使われます。" }],
+    variations:[
+      { label:"別の言い方", text:"When does boarding begin?" },
+      { label:"より丁寧", text:"Could you tell me what time boarding starts?" }
+    ]
+  },
+  {
+    id:'p015', english:"I'd like a window seat, please.",
+    japanese:"窓側の席をお願いします。", categoryId:'c2',
+    idioms:[{ term:"window seat / aisle seat", note:"window seat = 窓側席、aisle seat（アイル シート）= 通路側席。チェックインや予約時の基本語彙です。" }],
+    variations:[
+      { label:"通路側の場合", text:"I'd like an aisle seat, please." },
+      { label:"より丁寧", text:"If possible, I would prefer a window seat." }
+    ]
+  },
+  {
+    id:'p016', english:"Is this flight on time?",
+    japanese:"このフライトは定刻通りですか？", categoryId:'c2',
+    idioms:[{ term:"on time (定刻通り)", note:"「on time」= 予定時刻通り。遅延は「delayed」、早着は「ahead of schedule」。" }],
+    variations:[
+      { label:"別の言い方", text:"Has this flight been delayed?" },
+      { label:"より丁寧", text:"Excuse me, could you tell me if this flight is on schedule?" }
+    ]
+  },
+  {
+    id:'p017', english:"Where can I pick up my luggage?",
+    japanese:"荷物はどこで受け取れますか？", categoryId:'c2',
+    idioms:[{ term:"pick up (受け取る)", note:"荷物の受取場所は「baggage claim」または「baggage carousel」と言います。" }],
+    variations:[
+      { label:"別の言い方", text:"Where is the baggage claim?" },
+      { label:"より丁寧", text:"Excuse me, could you tell me where I can collect my luggage?" }
+    ]
+  },
+  {
+    id:'p018', english:"I have nothing to declare.",
+    japanese:"申告するものは何もありません。", categoryId:'c2',
+    idioms:[{ term:"declare (申告する)", note:"税関での申告。「customs declaration」= 税関申告書。申告するものがあるときは「I have something to declare」。" }],
+    variations:[
+      { label:"別の言い方", text:"Everything is for personal use." },
+      { label:"より丁寧", text:"I don't have anything to declare." }
+    ]
+  },
+  {
+    id:'p019', english:"I'm here for business.",
+    japanese:"出張で来ています。", categoryId:'c2',
+    idioms:[{ term:"for business / for sightseeing / on vacation", note:"入国目的を伝えるフレーズ。観光は「for sightseeing」または「on vacation」。" }],
+    variations:[
+      { label:"観光の場合", text:"I'm here for sightseeing." },
+      { label:"より詳しく", text:"I'm here on a business trip for five days." }
+    ]
+  },
+  {
+    id:'p020', english:"How long is the layover?",
+    japanese:"乗り継ぎ時間はどのくらいですか？", categoryId:'c2',
+    idioms:[{ term:"layover (乗り継ぎ待ち時間)", note:"乗り継ぎのために空港で待つ時間。「stopover」とも言います。接続便は「connecting flight」。" }],
+    variations:[
+      { label:"別の言い方", text:"How long is my connection?" },
+      { label:"より丁寧", text:"Could you tell me how much time I have before my connecting flight?" }
+    ]
+  },
+
+  // ── c3 機内フレーズ ──────────────────────────────────────────────
+
+  {
+    id:'p021', english:"Could I have some water, please?",
+    japanese:"お水をいただけますか？", categoryId:'c3',
+    idioms:[{ term:"Could I have ...?", note:"機内や飲食店でものを頼む定番表現。「Can I have」より丁寧で、CAや店員に対して自然に使えます。" }],
+    variations:[
+      { label:"より丁寧", text:"Excuse me, may I have a glass of water?" },
+      { label:"カジュアル", text:"Can I get some water?" }
+    ]
+  },
+  {
+    id:'p022', english:"May I recline my seat?",
+    japanese:"シートを倒してもよろしいですか？", categoryId:'c3',
+    idioms:[{ term:"recline (シートを倒す)", note:"後ろの席の人に声をかけるのが機内マナー。「go ahead」= どうぞ、という返答が来ます。" }],
+    variations:[
+      { label:"より丁寧", text:"Would you mind if I reclined my seat?" },
+      { label:"別の言い方", text:"Do you mind if I put my seat back?" }
+    ]
+  },
+  {
+    id:'p023', english:"Could I have a blanket?",
+    japanese:"毛布をいただけますか？", categoryId:'c3',
+    idioms:[{ term:"blanket (毛布)", note:"機内備品の基本語彙。pillow（枕）、headphones（ヘッドフォン）、eye mask（アイマスク）なども覚えると便利。" }],
+    variations:[
+      { label:"より丁寧", text:"Excuse me, may I have a blanket?" },
+      { label:"まとめて頼む", text:"Could I have a blanket and a pillow, please?" }
+    ]
+  },
+  {
+    id:'p024', english:"What time do we land?",
+    japanese:"何時に着陸しますか？", categoryId:'c3',
+    idioms:[{ term:"land (着陸する)", note:"到着は「arrive」、離陸は「take off」。より正式には「What's our estimated arrival time?」。" }],
+    variations:[
+      { label:"より丁寧", text:"Could you tell me what time we're expected to land?" },
+      { label:"別の言い方", text:"When do we arrive?" }
+    ]
+  },
+  {
+    id:'p025', english:"Could I have the vegetarian meal?",
+    japanese:"ベジタリアンミールをいただけますか？", categoryId:'c3',
+    idioms:[{ term:"vegetarian meal / special meal", note:"機内食の特別食の総称は「special meal」。ハラール食は「halal meal」、ヴィーガンは「vegan meal」。" }],
+    variations:[
+      { label:"より丁寧", text:"Excuse me, I requested a vegetarian meal. Could I have it, please?" },
+      { label:"別の言い方", text:"Do you have a vegetarian option?" }
+    ]
+  },
+  {
+    id:'p026', english:"Is there Wi-Fi on board?",
+    japanese:"機内にWi-Fiはありますか？", categoryId:'c3',
+    idioms:[{ term:"on board (機内に・搭乗して)", note:"「乗り物の中に」という意味。「on board the plane / ship / train」のように使います。" }],
+    variations:[
+      { label:"より丁寧", text:"Excuse me, does this flight offer Wi-Fi?" },
+      { label:"別の言い方", text:"Can I use the internet on this flight?" }
+    ]
+  },
+  {
+    id:'p027', english:"Could you stow this in the overhead compartment?",
+    japanese:"これを頭上の収納棚に入れていただけますか？", categoryId:'c3',
+    idioms:[
+      { term:"overhead compartment (頭上の収納棚)", note:"「overhead bin」とも言います。" },
+      { term:"stow (しまう)", note:"「（荷物を所定の場所に）しまう」という動詞。" }
+    ],
+    variations:[
+      { label:"より丁寧", text:"Excuse me, would you mind helping me stow this bag?" },
+      { label:"カジュアル", text:"Could you help me with this bag in the overhead bin?" }
+    ]
+  },
+  {
+    id:'p028', english:"Could I have some more coffee, please?",
+    japanese:"コーヒーをもう少しいただけますか？", categoryId:'c3',
+    idioms:[{ term:"some more (もう少し)", note:"「more」だけでも通じますが「some more」の方が自然。「a refill（お替わり）」という表現も使えます: Could I get a refill?" }],
+    variations:[
+      { label:"より丁寧", text:"Excuse me, may I have a little more coffee?" },
+      { label:"別の言い方", text:"Could I get a coffee refill?" }
+    ]
+  },
+
+  // ── c4 建築の職場フレーズ ────────────────────────────────────────
+
+  {
+    id:'p029', english:"We need to review the drawing.",
+    japanese:"図面を確認する必要があります。", categoryId:'c4',
+    idioms:[{ term:"review (確認する・見直す)", note:"「check」より格式のある確認・検討の動詞。会議や検討の場でよく使われます。" }],
+    variations:[
+      { label:"より具体的", text:"We need to go over the drawing in detail." },
+      { label:"提案形式", text:"Could we review the drawing together?" }
+    ]
+  },
+  {
+    id:'p030', english:"This detail needs to be revised.",
+    japanese:"このディテールは修正が必要です。", categoryId:'c4',
+    idioms:[{ term:"revise / revision (修正する・修正)", note:"「revise」は内容を修正・改訂する動詞。「correct（誤りを直す）」より広い意味です。" }],
+    variations:[
+      { label:"より丁寧", text:"I think this detail may need to be revised." },
+      { label:"別の言い方", text:"This section needs some changes." }
+    ]
+  },
+  {
+    id:'p031', english:"Could you share the latest schedule?",
+    japanese:"最新のスケジュールを共有していただけますか？", categoryId:'c4',
+    idioms:[{ term:"share (共有する)", note:"ビジネスでは「ファイル・情報・画面などを共有する」という意味で非常によく使います。" }],
+    variations:[
+      { label:"より丁寧", text:"Would you mind sharing the latest schedule with me?" },
+      { label:"別の言い方", text:"Could you send me the updated schedule?" }
+    ]
+  },
+  {
+    id:'p032', english:"Let me check the specifications.",
+    japanese:"仕様を確認させてください。", categoryId:'c4',
+    idioms:[{ term:"specifications / specs (仕様)", note:"設計・製品の詳細な技術要件。口語では「specs（スペックス）」と略すことが多いです。" }],
+    variations:[
+      { label:"より丁寧", text:"Could I take a moment to check the specifications?" },
+      { label:"カジュアル", text:"Let me look at the specs." }
+    ]
+  },
+  {
+    id:'p033', english:"The deadline is next Friday.",
+    japanese:"締め切りは来週の金曜日です。", categoryId:'c4',
+    idioms:[{ term:"deadline (締め切り・期限)", note:"「submission deadline（提出期限）」「construction deadline（工期）」のように形容詞的に使えます。" }],
+    variations:[
+      { label:"確認する言い方", text:"Could you confirm that the deadline is next Friday?" },
+      { label:"別の言い方", text:"We need to finish this by next Friday." }
+    ]
+  },
+  {
+    id:'p034', english:"Could you send me the updated drawings?",
+    japanese:"最新の図面を送っていただけますか？", categoryId:'c4',
+    idioms:[{ term:"updated (最新の・更新された)", note:"「the latest drawings（最新の図面）」と同じ意味で使えます。" }],
+    variations:[
+      { label:"より丁寧", text:"Would you mind sending me the updated drawings?" },
+      { label:"別の言い方", text:"Could you forward me the latest drawings?" }
+    ]
+  },
+  {
+    id:'p035', english:"We need to conduct a site inspection.",
+    japanese:"現場検査を実施する必要があります。", categoryId:'c4',
+    idioms:[
+      { term:"conduct (実施する・行う)", note:"「do」より改まった動詞。「conduct a meeting / survey / inspection」のように公式な行為に使います。" },
+      { term:"site inspection (現場検査)", note:"「on-site inspection」とも言います。「site visit（現場訪問）」はより一般的な訪問を指します。" }
+    ],
+    variations:[
+      { label:"別の言い方", text:"We need to visit the site for an inspection." },
+      { label:"提案形式", text:"Should we schedule a site inspection?" }
+    ]
+  },
+  {
+    id:'p036', english:"The load calculation needs to be verified.",
+    japanese:"荷重計算を検証する必要があります。", categoryId:'c4',
+    idioms:[
+      { term:"verify (検証する・確認する)", note:"「confirm（確認する）」より「正確さを証明する」ニュアンスが強い動詞。" },
+      { term:"load calculation (荷重計算)", note:"建築構造分野の専門用語。「structural calculation（構造計算）」も関連語です。" }
+    ],
+    variations:[
+      { label:"別の言い方", text:"We need to double-check the load calculation." },
+      { label:"より丁寧", text:"Could you verify the load calculation?" }
+    ]
+  },
+  {
+    id:'p037', english:"Please check the construction documents.",
+    japanese:"施工図書を確認してください。", categoryId:'c4',
+    idioms:[{ term:"construction documents (施工図書)", note:"設計図・仕様書・契約書などの施工に関する一連の書類の総称。略して「CDs」とも呼ばれます。" }],
+    variations:[
+      { label:"依頼形式", text:"Could you review the construction documents?" },
+      { label:"より具体的", text:"Please check the specifications in the construction documents." }
+    ]
+  },
+  {
+    id:'p038', english:"We have a design meeting on Monday.",
+    japanese:"月曜日にデザインミーティングがあります。", categoryId:'c4',
+    idioms:[{ term:"design meeting (設計打合せ)", note:"「coordination meeting（調整会議）」「progress meeting（進捗会議）」なども関連語です。" }],
+    variations:[
+      { label:"別の言い方", text:"There's a design meeting scheduled for Monday." },
+      { label:"確認する言い方", text:"Are you available for the design meeting on Monday?" }
+    ]
+  },
+  {
+    id:'p039', english:"Could you clarify the scope of work?",
+    japanese:"業務の範囲を明確にしていただけますか？", categoryId:'c4',
+    idioms:[
+      { term:"scope of work (業務範囲)", note:"プロジェクトで担当する作業の範囲。略して「SOW」とも言います。契約・見積もりの場面で頻出の表現です。" },
+      { term:"clarify (明確にする)", note:"あいまいな点をはっきりさせる動詞。「Could you clarify ...?」は丁寧な確認フレーズです。" }
+    ],
+    variations:[
+      { label:"より丁寧", text:"I'd like to confirm the scope of work. Could you clarify what's included?" },
+      { label:"別の言い方", text:"What exactly does the scope of work cover?" }
+    ]
+  },
+  {
+    id:'p040', english:"I'll get back to you on that.",
+    japanese:"それについては後でご連絡します。", categoryId:'c4',
+    idioms:[{ term:"get back to (後で連絡・返答する)", note:"「後で確認してから連絡する」という頻出表現。「I'll get back to you by tomorrow」= 明日までにご連絡します。" }],
+    variations:[
+      { label:"期限を加えて", text:"I'll get back to you on that by end of day." },
+      { label:"別の言い方", text:"Let me look into that and follow up with you." }
+    ]
+  },
+
+  // ── c1 聞き返し追加 ──────────────────────────────────────────────
+
+  {
+    id:'p041', english:"I can speak perfect broken English.",
+    japanese:"完璧な壊れた英語を話せます。（英語が苦手なことをユーモアで伝える）", categoryId:'c1',
+    idioms:[{ term:"perfect broken English (完璧な壊れた英語)", note:"自分の英語が上手くないことをユーモアで表現する決まり文句。相手を笑顔にしながら英語が苦手なことを伝えられ、場が和みます。" }],
+    variations:[
+      { label:"同じ意味で", text:"My English isn't perfect, but I'll do my best." },
+      { label:"別の言い方", text:"I'm not great at English, but I'll try." }
+    ]
+  },
+  {
+    id:'p042', english:"Let me check my document.",
+    japanese:"書類を確認させてください。", categoryId:'c1',
+    idioms:[{ term:"let me (〜させてください)", note:"「Let me + 動詞」は「〜させてください」という自己申告の表現。例: Let me see. / Let me think." }],
+    variations:[
+      { label:"よりフォーマル", text:"Could I take a moment to check my documents?" },
+      { label:"別の言い方", text:"One moment — I need to check this." }
+    ]
+  },
+  {
+    id:'p043', english:"One moment, please.",
+    japanese:"少々お待ちください。", categoryId:'c1',
+    idioms:[{ term:"one moment (少々)", note:"「just a moment」「just a second」も同じ意味。急いでいる相手への礼儀として使えます。" }],
+    variations:[
+      { label:"より丁寧", text:"Could you bear with me for a moment, please?" },
+      { label:"別の言い方", text:"Just a second, please." }
+    ]
+  },
+  {
+    id:'p044', english:"Could you help me, please?",
+    japanese:"助けていただけますか？", categoryId:'c1',
+    idioms:[{ term:"Could you help me?", note:"最も汎用性の高い「助けを求める」フレーズ。具体的に言えない場面でも使える万能表現です。" }],
+    variations:[
+      { label:"より具体的に", text:"Excuse me, I'm a bit lost — could you help me?" },
+      { label:"別の言い方", text:"I need some help, please." }
+    ]
+  },
+  {
+    id:'p045', english:"Thank you for your help.",
+    japanese:"ご助力ありがとうございます。", categoryId:'c1',
+    idioms:[{ term:"thank you for ... (〜ありがとうございます)", note:"「thank you for + 名詞/動名詞」の形。例: Thank you for your time. / Thank you for waiting." }],
+    variations:[
+      { label:"より丁寧", text:"I really appreciate your help." },
+      { label:"カジュアル", text:"Thanks a lot!" }
+    ]
+  },
+
+  // ── c2 空港追加 ──────────────────────────────────────────────────
+
+  {
+    id:'p046', english:"I have one checked bag and one carry-on bag.",
+    japanese:"預け入れ荷物が1つ、機内持ち込みが1つあります。", categoryId:'c2',
+    idioms:[{ term:"checked bag (預け入れ荷物)", note:"「check in a bag（荷物を預ける）」の名詞形。carry-on bag = 機内持ち込みのバッグ（客室内に持ち込む小さな荷物）。" }],
+    variations:[
+      { label:"より具体的", text:"I'd like to check in two bags." },
+      { label:"確認するとき", text:"Does this bag need to be checked in?" }
+    ]
+  },
+  {
+    id:'p047', english:"Is this bag okay as carry-on?",
+    japanese:"このバッグは機内持ち込みで大丈夫ですか？", categoryId:'c2',
+    idioms:[{ term:"carry-on (機内持ち込みの)", note:"機内に持ち込める手荷物。サイズ制限があります。「overhead bin（頭上の収納棚）」に入るサイズが目安です。" }],
+    variations:[
+      { label:"より丁寧", text:"Is this bag within the carry-on size limit?" },
+      { label:"別の言い方", text:"Can I bring this bag on board?" }
+    ]
+  },
+  {
+    id:'p048', english:"Could I change my seat?",
+    japanese:"席を変更していただけますか？", categoryId:'c2',
+    idioms:[{ term:"change my seat (席を変える)", note:"「switch rooms」とも言います。「Could I be moved to a different seat?」でも同じ意味。" }],
+    variations:[
+      { label:"より丁寧", text:"Is it possible to change my seat?" },
+      { label:"理由を加えて", text:"Could I change my seat? I'd prefer a window seat." }
+    ]
+  },
+  {
+    id:'p049', english:"My flight is delayed.",
+    japanese:"フライトが遅延しています。", categoryId:'c2',
+    idioms:[{ term:"delayed (遅延した)", note:"「on time（定刻）」の反対語。「My flight has been delayed by two hours（2時間遅延）」のように時間を加えることもできます。" }],
+    variations:[
+      { label:"状況確認", text:"Has this flight been delayed?" },
+      { label:"別の言い方", text:"Is there a delay on this flight?" }
+    ]
+  },
+  {
+    id:'p050', english:"I'm worried about my connecting flight.",
+    japanese:"乗り継ぎ便のことが心配です。", categoryId:'c2',
+    idioms:[{ term:"worried about (〜が心配)", note:"心配・不安を伝える表現。「I'm concerned about〜」とも言えます（よりフォーマル）。" }],
+    variations:[
+      { label:"乗り換えの可否を聞く", text:"Will I make my connecting flight?" },
+      { label:"より丁寧", text:"Excuse me, I'm concerned I may miss my connection." }
+    ]
+  },
+  {
+    id:'p051', english:"Where should I go for my connecting flight?",
+    japanese:"乗り継ぎ便のためにはどこへ行けばよいですか？", categoryId:'c2',
+    idioms:[{ term:"connecting flight (乗り継ぎ便)", note:"乗り継ぎのための次の便。「my next flight（次のフライト）」と言っても通じます。" }],
+    variations:[
+      { label:"シンプルに", text:"Where do I go for my connection?" },
+      { label:"別の言い方", text:"Which gate is my connecting flight?" }
+    ]
+  },
+  {
+    id:'p052', english:"How much time do I have to transfer?",
+    japanese:"乗り換えにどのくらい時間がありますか？", categoryId:'c2',
+    idioms:[{ term:"transfer (乗り換える)", note:"別の便や交通機関に乗り換えること。空港では「transit」とも言います。「How long is the layover?」と同じ意味です。" }],
+    variations:[
+      { label:"別の言い方", text:"How long do I have before my next flight?" },
+      { label:"より丁寧", text:"Could you tell me how much time I have for my connection?" }
+    ]
+  },
+  {
+    id:'p053', english:"Is this the line for check-in?",
+    japanese:"これはチェックインの列ですか？", categoryId:'c2',
+    idioms:[{ term:"line / queue (列)", note:"アメリカ英語では「line」、イギリス英語では「queue」。「Is this the right line for ...?」と確認できます。" }],
+    variations:[
+      { label:"別の言い方", text:"Is this the check-in queue?" },
+      { label:"より丁寧", text:"Excuse me, is this where I check in?" }
+    ]
+  },
+
+  // ── c3 機内追加 ──────────────────────────────────────────────────
+
+  {
+    id:'p054', english:"Could I have tea instead of coffee?",
+    japanese:"コーヒーの代わりにお茶をいただけますか？", categoryId:'c3',
+    idioms:[{ term:"instead of (〜の代わりに)", note:"選択肢を変えるときの便利な表現。「instead of A, I'd like B（AではなくB）」の形でも使えます。" }],
+    variations:[
+      { label:"より丁寧", text:"May I have tea rather than coffee, please?" },
+      { label:"別の言い方", text:"Can I switch to tea?" }
+    ]
+  },
+  {
+    id:'p055', english:"No ice, please.",
+    japanese:"氷はいりません。", categoryId:'c3',
+    idioms:[{ term:"No + 名詞, please (〜はいりません)", note:"シンプルに不要なものを断るフレーズ。「No sugar」「No milk」など幅広く使えます。" }],
+    variations:[
+      { label:"別の言い方", text:"Could I have that without ice?" },
+      { label:"別のシーン", text:"Just water, no ice, please." }
+    ]
+  },
+  {
+    id:'p056', english:"Could I have one more napkin, please?",
+    japanese:"ナプキンをもう一枚いただけますか？", categoryId:'c3',
+    idioms:[{ term:"one more (もう一つ)", note:"「another」と同じ意味ですが、「one more」は数を強調します。「Could I have one more?」で単体でも使えます。" }],
+    variations:[
+      { label:"別のもの", text:"Could I have some extra napkins, please?" },
+      { label:"カジュアル", text:"Can I get another napkin?" }
+    ]
+  },
+  {
+    id:'p057', english:"I don't feel very well.",
+    japanese:"あまり気分がよくありません。", categoryId:'c3',
+    idioms:[{ term:"not feel very well (気分がよくない)", note:"「I feel sick（気分が悪い）」よりも控えめな表現。CAに伝える場合はこちらのほうが自然です。" }],
+    variations:[
+      { label:"より具体的", text:"I feel a bit nauseous." },
+      { label:"別の言い方", text:"I'm not feeling well. Could you help me?" }
+    ]
+  },
+  {
+    id:'p058', english:"Could I have a pen, please?",
+    japanese:"ペンをいただけますか？", categoryId:'c3',
+    idioms:[{ term:"Could I have ...?", note:"機内の入国書類を記入するときに特に便利。「Do you have a pen I could borrow?」も同じ意味の丁寧な表現です。" }],
+    variations:[
+      { label:"より丁寧", text:"Excuse me, do you have a pen I could borrow?" },
+      { label:"別の言い方", text:"May I borrow a pen?" }
+    ]
+  },
+  {
+    id:'p059', english:"Where is the restroom?",
+    japanese:"お手洗いはどこですか？", categoryId:'c3',
+    idioms:[{ term:"restroom / lavatory (お手洗い)", note:"機内では「lavatory（ラバトリー）」と言うことが多いです。地上では「restroom」（米）「toilet」（英・豪）が一般的。" }],
+    variations:[
+      { label:"機内の言い方", text:"Where is the lavatory?" },
+      { label:"別の言い方", text:"Could you tell me where the bathroom is?" }
+    ]
+  },
+  {
+    id:'p060', english:"Excuse me, let me out, please.",
+    japanese:"すみません、通してください。", categoryId:'c3',
+    idioms:[{ term:"let me out (通してください)", note:"席を立って通路に出たいときの表現。「Could I get past you?」や「Excuse me, I need to get out」も使えます。" }],
+    variations:[
+      { label:"より丁寧", text:"I'm sorry to disturb you, but could I get past?" },
+      { label:"別の言い方", text:"Could I squeeze past you, please?" }
+    ]
+  },
+  {
+    id:'p061', english:"Could you help me with this form?",
+    japanese:"この書類の記入を手伝っていただけますか？", categoryId:'c3',
+    idioms:[{ term:"help me with (〜を手伝う)", note:"「Could you help me fill out this form?（この書類を記入するのを手伝っていただけますか？）」とより具体的にも言えます。" }],
+    variations:[
+      { label:"より具体的", text:"Could you help me fill out this form?" },
+      { label:"別の言い方", text:"I need some help with this document." }
+    ]
+  },
+
+  // ── c5 入国審査フレーズ ──────────────────────────────────────────
+
+  {
+    id:'p062', english:"I work in architectural design.",
+    japanese:"建築設計の仕事をしています。", categoryId:'c5',
+    idioms:[{ term:"architectural design (建築設計)", note:"「architecture（建築）」の形容詞形。「I'm an architectural designer（建築設計士です）」とも言えます。" }],
+    variations:[
+      { label:"別の言い方", text:"I'm in the architecture field." },
+      { label:"より詳しく", text:"I work as a structural designer for a construction company." }
+    ]
+  },
+  {
+    id:'p063', english:"I will support design work for a construction project.",
+    japanese:"建設プロジェクトの設計業務を支援する予定です。", categoryId:'c5',
+    idioms:[{ term:"support design work (設計業務を支援する)", note:"出張の目的として使える表現。「assist with〜（〜を支援する）」でも同じ意味です。" }],
+    variations:[
+      { label:"別の言い方", text:"I'm here to assist with a design project." },
+      { label:"よりシンプルに", text:"I'm working on a construction project here." }
+    ]
+  },
+  {
+    id:'p064', english:"I will attend meetings and visit the site.",
+    japanese:"会議に出席し、現場を視察する予定です。", categoryId:'c5',
+    idioms:[{ term:"attend meetings (会議に出席する)", note:"「attend」はフォーマルな「参加する」。「go to meetings」より改まった表現です。" }],
+    variations:[
+      { label:"別の言い方", text:"I have meetings and a site visit scheduled." },
+      { label:"よりシンプルに", text:"I'm here for meetings and site inspections." }
+    ]
+  },
+  {
+    id:'p065', english:"I am working with a local team.",
+    japanese:"現地チームと一緒に仕事をしています。", categoryId:'c5',
+    idioms:[{ term:"local team (現地チーム)", note:"「local staff（現地スタッフ）」「local company（現地企業）」も関連語。「work with（〜と共に働く）」は協力関係を示します。" }],
+    variations:[
+      { label:"より詳しく", text:"I'm collaborating with a local construction company." },
+      { label:"別の言い方", text:"I have colleagues here in this city." }
+    ]
+  },
+  {
+    id:'p066', english:"I will stay at a hotel in Ho Chi Minh City.",
+    japanese:"ホーチミン市内のホテルに滞在する予定です。", categoryId:'c5',
+    idioms:[{ term:"stay at a hotel (ホテルに滞在する)", note:"「stay at」は場所に滞在するときの前置詞。「stay in（ある場所に滞在）」も同様に使えます。例: I'm staying in Tokyo." }],
+    variations:[
+      { label:"別の言い方", text:"My accommodation is in the city center." },
+      { label:"より具体的", text:"I'm staying at [hotel name] for five nights." }
+    ]
+  },
+  {
+    id:'p067', english:"Here is my booking confirmation.",
+    japanese:"こちらが予約確認書です。", categoryId:'c5',
+    idioms:[{ term:"booking confirmation (予約確認書)", note:"予約が完了したことを示す書類。メールのスクリーンショットや印刷物を見せる場面で使います。「reservation confirmation」とも言います。" }],
+    variations:[
+      { label:"別の言い方", text:"This is my hotel reservation." },
+      { label:"よりシンプルに", text:"Here is my confirmation email." }
+    ]
+  },
+  {
+    id:'p068', english:"This is my return ticket.",
+    japanese:"これが帰りのチケットです。", categoryId:'c5',
+    idioms:[{ term:"return ticket (帰りのチケット・往復券)", note:"イギリス英語では「return ticket」、アメリカ英語では「round-trip ticket」。入国審査官に出国予定を示すためによく使います。" }],
+    variations:[
+      { label:"別の言い方", text:"Here is my return flight information." },
+      { label:"より丁寧", text:"This shows my return flight date." }
+    ]
+  },
+  {
+    id:'p069', english:"Here is the contact information of the local office.",
+    japanese:"こちらが現地事務所の連絡先です。", categoryId:'c5',
+    idioms:[{ term:"contact information (連絡先)", note:"「contact details」とも言います。入国審査で現地の連絡先を聞かれたときに使います。" }],
+    variations:[
+      { label:"別の言い方", text:"Here is my company's local contact." },
+      { label:"よりシンプルに", text:"This is the local office number." }
+    ]
+  },
+  {
+    id:'p070', english:"I have a laptop, drawings, and work documents.",
+    japanese:"ノートパソコン、図面、業務書類を持っています。", categoryId:'c5',
+    idioms:[{ term:"drawings (図面)", note:"建築・設計分野での「図面」。「blueprints（青図）」と言うこともありますが、現代では「drawings」が一般的です。" }],
+    variations:[
+      { label:"別の言い方", text:"I'm carrying work materials — a laptop and some documents." },
+      { label:"よりシンプルに", text:"Just work materials and personal items." }
+    ]
+  },
+  {
+    id:'p071', english:"These are for work.",
+    japanese:"これらは業務用です。", categoryId:'c5',
+    idioms:[{ term:"for work (業務用・仕事のために)", note:"「for personal use（個人用）」の対義語として使えます。税関で申告するものがあるかどうか確認される場面で便利。" }],
+    variations:[
+      { label:"別の言い方", text:"These are work-related materials." },
+      { label:"より詳しく", text:"These are documents for a construction project." }
+    ]
+  },
+  {
+    id:'p072', english:"I am not bringing anything for sale.",
+    japanese:"販売目的のものは持参していません。", categoryId:'c5',
+    idioms:[{ term:"for sale (販売用の)", note:"「not for sale（非売品）」の応用。税関や入国審査で「商業目的の物品」がないことを伝えるフレーズです。" }],
+    variations:[
+      { label:"別の言い方", text:"Everything I have is for personal or work use." },
+      { label:"より丁寧", text:"I'm not carrying any commercial goods." }
+    ]
+  },
+  {
+    id:'p073', english:"I only have personal items and work materials.",
+    japanese:"個人の持ち物と業務資料だけです。", categoryId:'c5',
+    idioms:[{ term:"personal items (個人の所持品)", note:"税関申告でよく使う表現。「personal belongings」とも言います。" }],
+    variations:[
+      { label:"別の言い方", text:"Nothing to declare — just personal belongings and work items." },
+      { label:"よりシンプルに", text:"Just personal things and some documents." }
+    ]
+  },
+  {
+    id:'p074', english:"I work for an architectural design office.",
+    japanese:"建築設計事務所に勤めています。", categoryId:'c5',
+    idioms:[{ term:"work for (〜に勤める)", note:"「work at〜」でも同じ意味。「work for（会社・組織のために働く）」の方が少しフォーマルな印象です。" }],
+    variations:[
+      { label:"別の言い方", text:"I'm employed by an architecture firm." },
+      { label:"よりシンプルに", text:"I'm with an architecture company." }
+    ]
+  },
+  {
+    id:'p075', english:"I'm an architect.",
+    japanese:"建築士です。", categoryId:'c5',
+    idioms:[{ term:"architect (建築士・建築家)", note:"一級建築士は「licensed architect」または「registered architect」。「structural designer（構造設計士）」もよく使われます。" }],
+    variations:[
+      { label:"より詳しく", text:"I'm a licensed architect specializing in structural design." },
+      { label:"別の言い方", text:"I work in architecture — specifically structural design." }
+    ]
+  },
+  {
+    id:'p076', english:"I work on design and coordination.",
+    japanese:"設計とコーディネーションの業務をしています。", categoryId:'c5',
+    idioms:[{ term:"coordination (調整・コーディネーション)", note:"複数の関係者の間で仕事を調整すること。設計業務では「design coordination（設計調整）」として頻出します。" }],
+    variations:[
+      { label:"別の言い方", text:"My work involves design and project coordination." },
+      { label:"よりシンプルに", text:"I handle design and coordination." }
+    ]
+  },
+  {
+    id:'p077', english:"I will check the site conditions.",
+    japanese:"現場の状況を確認する予定です。", categoryId:'c5',
+    idioms:[{ term:"site conditions (現場状況)", note:"建築・土木分野の専門用語。「existing conditions（既存状況）」「field conditions（フィールド状況）」とも言います。" }],
+    variations:[
+      { label:"別の言い方", text:"I'm going to inspect the construction site." },
+      { label:"より丁寧", text:"I will be conducting a site survey." }
+    ]
+  },
+  {
+    id:'p078', english:"I will discuss drawings with the local team.",
+    japanese:"現地チームと図面について協議する予定です。", categoryId:'c5',
+    idioms:[{ term:"discuss (協議する・話し合う)", note:"「talk about」より改まった表現。「discuss drawings（図面を協議する）」「discuss plans（計画について話し合う）」のように使います。" }],
+    variations:[
+      { label:"別の言い方", text:"I have meetings to review drawings with the local team." },
+      { label:"よりシンプルに", text:"I'll be going over design drawings with colleagues here." }
+    ]
+  },
+  {
+    id:'p079', english:"I will review the construction schedule.",
+    japanese:"工程表を確認する予定です。", categoryId:'c5',
+    idioms:[{ term:"construction schedule (工程表・施工スケジュール)", note:"「project schedule（プロジェクトスケジュール）」とも言います。「工程管理」は「schedule management」。" }],
+    variations:[
+      { label:"別の言い方", text:"I need to check the project timeline." },
+      { label:"より詳しく", text:"We need to align on the construction schedule with the local team." }
+    ]
+  },
+  {
+    id:'p080', english:"I will join design meetings.",
+    japanese:"設計会議に参加する予定です。", categoryId:'c5',
+    idioms:[{ term:"join (参加する)", note:"「attend（出席する）」より口語的な表現。「join a meeting（会議に参加する）」はビジネスでよく使います。" }],
+    variations:[
+      { label:"より丁寧", text:"I will be attending design coordination meetings." },
+      { label:"別の言い方", text:"I have several design meetings scheduled." }
+    ]
+  },
+  {
+    id:'p081', english:"How long may I stay?",
+    japanese:"どのくらい滞在できますか？", categoryId:'c5',
+    idioms:[{ term:"How long may I stay? (どのくらい滞在できますか？)", note:"入国審査で滞在許可期間を確認する表現。「How long can I stay?」よりも丁寧な「may」を使います。" }],
+    variations:[
+      { label:"別の言い方", text:"What is the maximum stay allowed?" },
+      { label:"より丁寧", text:"Could you tell me how long I'm permitted to stay?" }
+    ]
+  },
+
+  // ── c6 ホテルフレーズ ────────────────────────────────────────────
+
+  {
+    id:'p082', english:"I have a reservation under the name Matsumoto.",
+    japanese:"松本名義で予約しています。", categoryId:'c6',
+    idioms:[{ term:"under the name (〜名義で)", note:"予約名を伝えるときの定番表現。「I booked under Matsumoto」とも言えます。" }],
+    variations:[
+      { label:"別の言い方", text:"I made a reservation — the name is Matsumoto." },
+      { label:"カジュアル", text:"I have a booking under Matsumoto." }
+    ]
+  },
+  {
+    id:'p083', english:"I booked it online.",
+    japanese:"オンラインで予約しました。", categoryId:'c6',
+    idioms:[{ term:"book online (オンラインで予約する)", note:"「reserve online」とも言います。「I booked through [予約サイト名]」のように予約サイト名を加えることもできます。" }],
+    variations:[
+      { label:"予約サイトを加える", text:"I booked it through Booking.com." },
+      { label:"より丁寧", text:"I made my reservation online. Here is the confirmation." }
+    ]
+  },
+  {
+    id:'p084', english:"Could you check again, please?",
+    japanese:"もう一度確認していただけますか？", categoryId:'c6',
+    idioms:[{ term:"check again (もう一度確認する)", note:"予約が見当たらないときに使う表現。「check」を「look into」に変えてもOK: Could you look into that again?" }],
+    variations:[
+      { label:"より丁寧", text:"I'm sorry, but would you mind checking once more?" },
+      { label:"別の言い方", text:"Could you double-check my reservation?" }
+    ]
+  },
+  {
+    id:'p085', english:"I think the date is correct.",
+    japanese:"日付は合っていると思います。", categoryId:'c6',
+    idioms:[{ term:"I think ... is correct (〜は正しいと思います)", note:"確信があるが断言を避けたいときの表現。「I'm pretty sure the date is right」とも言えます。" }],
+    variations:[
+      { label:"より強い確認", text:"The date should be correct. Here is my confirmation email." },
+      { label:"別の言い方", text:"I double-checked — the dates are right." }
+    ]
+  },
+  {
+    id:'p086', english:"Do you have a non-smoking room?",
+    japanese:"禁煙のお部屋はありますか？", categoryId:'c6',
+    idioms:[{ term:"non-smoking room (禁煙室)", note:"「smoking room（喫煙室）」の対義語。「smoke-free room」とも言います。海外ホテルもデフォルトで禁煙が多いですが確認が安心。" }],
+    variations:[
+      { label:"別の言い方", text:"Is the room smoke-free?" },
+      { label:"より丁寧", text:"Could I have a non-smoking room, please?" }
+    ]
+  },
+  {
+    id:'p087', english:"Can I have a room with a bath?",
+    japanese:"バスタブのある部屋をいただけますか？", categoryId:'c6',
+    idioms:[{ term:"room with a bath (バスタブ付きの部屋)", note:"「bath」はバスタブのこと。シャワーのみの部屋は「shower only」。海外ではバスタブなしの部屋も多いので要確認。" }],
+    variations:[
+      { label:"より丁寧", text:"Is it possible to have a room with a bathtub?" },
+      { label:"別の言い方", text:"Do you have a room with a tub?" }
+    ]
+  },
+  {
+    id:'p088', english:"Can I have a quiet room?",
+    japanese:"静かなお部屋をいただけますか？", categoryId:'c6',
+    idioms:[{ term:"quiet room (静かな部屋)", note:"通りに面した部屋は騒がしいことがあります。「away from the street（通りから離れた）」「away from the elevator（エレベーターから離れた）」と加えるとより伝わります。" }],
+    variations:[
+      { label:"より詳しく", text:"Could I have a quiet room, away from the elevator?" },
+      { label:"別の言い方", text:"Is there a room on the quieter side?" }
+    ]
+  },
+  {
+    id:'p089', english:"Is it possible to get a room on a higher floor?",
+    japanese:"高層階のお部屋は可能ですか？", categoryId:'c6',
+    idioms:[{ term:"higher floor (高い階)", note:"「upper floor」とも言います。「low floor（低層階）」「top floor（最上階）」も関連語です。" }],
+    variations:[
+      { label:"より丁寧", text:"Could I have a room on a higher floor, if available?" },
+      { label:"別の言い方", text:"I'd prefer a room on one of the upper floors." }
+    ]
+  },
+  {
+    id:'p090', english:"Can I change my room?",
+    japanese:"部屋を変えていただけますか？", categoryId:'c6',
+    idioms:[{ term:"change my room (部屋を変える)", note:"「switch rooms」とも言います。問題がある場合は理由を添えると伝わりやすいです。例: Can I change my room? It's too noisy." }],
+    variations:[
+      { label:"理由を加えて", text:"The room is too noisy — is it possible to change?" },
+      { label:"より丁寧", text:"Would it be possible to move to a different room?" }
+    ]
+  },
+  {
+    id:'p091', english:"Is breakfast included?",
+    japanese:"朝食は含まれていますか？", categoryId:'c6',
+    idioms:[{ term:"included (含まれている)", note:"「Is breakfast included in the rate?（料金に朝食は含まれていますか？）」とより正確に聞くこともできます。" }],
+    variations:[
+      { label:"より詳しく", text:"Is breakfast included in my room rate?" },
+      { label:"別の言い方", text:"Does the room include breakfast?" }
+    ]
+  },
+  {
+    id:'p092', english:"What time does breakfast start?",
+    japanese:"朝食は何時から始まりますか？", categoryId:'c6',
+    idioms:[{ term:"What time does ... start? (〜は何時から始まりますか？)", note:"「from what time〜」と言う人も多いですが、「What time does〜 start?」が最も自然な英語です。" }],
+    variations:[
+      { label:"終わりも聞く", text:"What are the breakfast hours?" },
+      { label:"別の言い方", text:"When is breakfast served?" }
+    ]
+  },
+  {
+    id:'p093', english:"Is there a laundry room?",
+    japanese:"コインランドリーはありますか？", categoryId:'c6',
+    idioms:[{ term:"laundry room (コインランドリー・洗濯室)", note:"自分で洗濯できる部屋。「laundry service（クリーニングサービス）」とは別物です。「coin laundry」とも言います。" }],
+    variations:[
+      { label:"別の言い方", text:"Is there a self-service laundry in the hotel?" },
+      { label:"クリーニングの場合", text:"Do you offer a laundry service?" }
+    ]
+  },
+  {
+    id:'p094', english:"Do you have room service?",
+    japanese:"ルームサービスはありますか？", categoryId:'c6',
+    idioms:[{ term:"room service (ルームサービス)", note:"部屋に食事を届けてもらうサービス。「What time does room service end?（ルームサービスは何時まで？）」と続けて聞くことも多いです。" }],
+    variations:[
+      { label:"追加で聞く", text:"Do you have room service? Until what time?" },
+      { label:"別の言い方", text:"Can I order food to my room?" }
+    ]
+  },
+  {
+    id:'p095', english:"Can I use the gym?",
+    japanese:"ジムは使えますか？", categoryId:'c6',
+    idioms:[{ term:"gym (ジム・フィットネス設備)", note:"「fitness center」とも言います。「Are there any extra charges for the gym?（ジムは追加料金がかかりますか？）」と確認するのも大切。" }],
+    variations:[
+      { label:"別の言い方", text:"Is there a fitness center available to guests?" },
+      { label:"プール確認", text:"Can I use the pool and gym?" }
+    ]
+  },
+  {
+    id:'p096', english:"The air conditioner is not working.",
+    japanese:"エアコンが動いていません。", categoryId:'c6',
+    idioms:[{ term:"not working (動いていない・故障している)", note:"機械・設備が機能しないときの定番表現。「broken（壊れた）」よりも丁寧で、一時的な不具合のときにも使えます。" }],
+    variations:[
+      { label:"別の言い方", text:"The A/C isn't working in my room." },
+      { label:"より丁寧", text:"There seems to be a problem with the air conditioning in my room." }
+    ]
+  },
+  {
+    id:'p097', english:"There is no hot water.",
+    japanese:"お湯が出ません。", categoryId:'c6',
+    idioms:[{ term:"There is no ... (〜がない)", note:"「I can't get hot water」も同じ意味。「The hot water isn't working」でもOKです。" }],
+    variations:[
+      { label:"別の言い方", text:"The hot water isn't working." },
+      { label:"より丁寧", text:"I'm having trouble with the hot water — could someone look at it?" }
+    ]
+  },
+  {
+    id:'p098', english:"The room is too cold.",
+    japanese:"部屋が寒すぎます。", categoryId:'c6',
+    idioms:[{ term:"too cold / too hot (寒すぎる・暑すぎる)", note:"「too + 形容詞」で「〜すぎる」の意味。「The room is a little cold. Could you send up extra blankets?」と丁寧に頼むこともできます。" }],
+    variations:[
+      { label:"より具体的", text:"It's very cold in here — can I get extra blankets?" },
+      { label:"暑い場合", text:"The room is too hot. Can you adjust the air conditioning?" }
+    ]
+  },
+  {
+    id:'p099', english:"The Wi-Fi is slow.",
+    japanese:"Wi-Fiが遅いです。", categoryId:'c6',
+    idioms:[{ term:"slow Wi-Fi (遅いWi-Fi)", note:"「The internet connection is poor（インターネット接続が悪い）」でも同じ意味。「Is there a stronger signal elsewhere?」と続けることもできます。" }],
+    variations:[
+      { label:"つながらない場合", text:"The Wi-Fi isn't working. Could I get the password again?" },
+      { label:"より丁寧", text:"The internet connection seems very slow. Is there anything I can do?" }
+    ]
+  },
+  {
+    id:'p100', english:"Could I have some extra towels, please?",
+    japanese:"タオルを追加でいただけますか？", categoryId:'c6',
+    idioms:[{ term:"extra (追加の・余分の)", note:"「additional（追加の）」でも同じ意味ですが「extra」の方が口語的です。「Could I have some extra [anything]?」の形で幅広く使えます。" }],
+    variations:[
+      { label:"別のもの", text:"Could I have extra pillows, please?" },
+      { label:"まとめて頼む", text:"Could I get some extra towels and a blanket?" }
+    ]
+  },
+  {
+    id:'p101', english:"I've locked myself out of my room.",
+    japanese:"部屋の鍵を閉じ込めてしまいました。", categoryId:'c6',
+    idioms:[{ term:"locked myself out (鍵を閉じ込めた)", note:"「lock out（ロックアウトする）」の再帰表現。鍵を部屋に置いたままドアが閉まってしまった状態。「I left my key inside」とも言えます。" }],
+    variations:[
+      { label:"別の言い方", text:"I left my key inside my room — can you let me in?" },
+      { label:"より丁寧", text:"I'm sorry, but I've accidentally locked myself out. Could you help me?" }
+    ]
+  },
+  {
+    id:'p102', english:"I would like to check out.",
+    japanese:"チェックアウトをお願いします。", categoryId:'c6',
+    idioms:[{ term:"check out (チェックアウトする)", note:"「check in（チェックインする）」の対義語。「late check-out（レイトチェックアウト）」を希望する場合は「Can I have a late check-out?」と聞きます。" }],
+    variations:[
+      { label:"遅いチェックアウト", text:"Can I have a late check-out, please?" },
+      { label:"より丁寧", text:"I'd like to check out, please. Could you prepare my bill?" }
+    ]
+  },
+  {
+    id:'p103', english:"Can I pay by card?",
+    japanese:"カードで支払えますか？", categoryId:'c6',
+    idioms:[{ term:"pay by card (カードで支払う)", note:"「pay by cash（現金で払う）」「pay by credit card」「pay by mobile（スマホ決済）」。支払い方法を言うときは前置詞「by」を使います。" }],
+    variations:[
+      { label:"現金の場合", text:"Do you accept cash?" },
+      { label:"より丁寧", text:"Would it be possible to pay by credit card?" }
+    ]
+  },
+  {
+    id:'p104', english:"Where is the taxi stand?",
+    japanese:"タクシー乗り場はどこですか？", categoryId:'c6',
+    idioms:[{ term:"taxi stand (タクシー乗り場)", note:"「taxi rank」（イギリス英語）とも言います。「Where can I get a taxi?」でも同じ意味です。" }],
+    variations:[
+      { label:"別の言い方", text:"Where can I get a taxi from the hotel?" },
+      { label:"より丁寧", text:"Could you tell me where the taxi stand is?" }
+    ]
+  },
+  {
+    id:'p105', english:"Could you call a taxi for me?",
+    japanese:"タクシーを呼んでいただけますか？", categoryId:'c6',
+    idioms:[{ term:"call a taxi (タクシーを呼ぶ)", note:"「hail a taxi（路上でタクシーを止める）」とは違い、「call」は電話で手配するニュアンス。「Could you book a taxi?」でも同じ意味です。" }],
+    variations:[
+      { label:"より丁寧", text:"Would you mind calling a taxi for me, please?" },
+      { label:"時間を指定", text:"Could you call a taxi for 9 a.m.?" }
+    ]
+  },
+  {
+    id:'p106', english:"Can you keep my luggage for a few hours?",
+    japanese:"荷物を数時間預かっていただけますか？", categoryId:'c6',
+    idioms:[{ term:"keep my luggage (荷物を預かる)", note:"「store my luggage」「hold my bags」とも言います。チェックアウト後もホテルを使う予定があるときに便利。" }],
+    variations:[
+      { label:"別の言い方", text:"Could I leave my bags here until this afternoon?" },
+      { label:"より丁寧", text:"Would it be possible to store my luggage for a few hours?" }
+    ]
+  },
+  {
+    id:'p107', english:"Could you print this for me?",
+    japanese:"これを印刷していただけますか？", categoryId:'c6',
+    idioms:[{ term:"print (印刷する)", note:"「Could you make a copy?（コピーをとっていただけますか？）」と混同しないように。「print」は印刷、「copy/photocopy」はコピー機でのコピーです。" }],
+    variations:[
+      { label:"コピーの場合", text:"Could you make a copy of this for me?" },
+      { label:"より丁寧", text:"I'm sorry to bother you, but could you print this document?" }
+    ]
+  },
+  {
+    id:'p108', english:"I don't recognize this charge.",
+    japanese:"この請求に覚えがありません。", categoryId:'c6',
+    idioms:[{ term:"recognize a charge (請求に覚えがある)", note:"「This charge looks unfamiliar」とも言えます。請求書のどの項目か指しながら言うと分かりやすいです。" }],
+    variations:[
+      { label:"より丁寧", text:"Excuse me, could you explain this charge? I don't think it's correct." },
+      { label:"別の言い方", text:"I think there may be a mistake on my bill." }
+    ]
+  },
+  {
+    id:'p109', english:"I had a very pleasant stay. Thank you.",
+    japanese:"とても快適な滞在でした。ありがとうございます。", categoryId:'c6',
+    idioms:[{ term:"pleasant stay (快適な滞在)", note:"チェックアウト時の感謝の一言。「I really enjoyed my stay」も使えます。スタッフへの良い印象を残せます。" }],
+    variations:[
+      { label:"別の言い方", text:"I really enjoyed my stay. The service was excellent." },
+      { label:"より丁寧", text:"Everything was wonderful. Thank you for a great stay." }
+    ]
+  },
+
+  // ── c7 移動・タクシーフレーズ ────────────────────────────────────
+
+  {
+    id:'p110', english:"Please take me to this address.",
+    japanese:"この住所まで連れて行ってください。", categoryId:'c7',
+    idioms:[{ term:"take me to (〜まで連れて行く)", note:"タクシーや車の運転手に行き先を告げる最も直接的な表現。スマホの地図を見せながら言うと確実です。" }],
+    variations:[
+      { label:"地図を見せながら", text:"I'd like to go here, please." },
+      { label:"より丁寧", text:"Could you take me to this address, please?" }
+    ]
+  },
+  {
+    id:'p111', english:"Here is the hotel name.",
+    japanese:"ホテルの名前はこちらです。", categoryId:'c7',
+    idioms:[{ term:"here is (こちらです)", note:"物を差し出すときの定番表現。「here is my card（こちらが私の名刺）」「here is the address（こちらが住所）」のように使います。" }],
+    variations:[
+      { label:"地図も一緒に", text:"Here is the hotel name and address." },
+      { label:"別の言い方", text:"I'm going to [hotel name]." }
+    ]
+  },
+  {
+    id:'p112', english:"It is near the station.",
+    japanese:"駅の近くです。", categoryId:'c7',
+    idioms:[{ term:"near (近くに)", note:"「close to（〜に近い）」とも言います。「It's about ten minutes from the station（駅から約10分）」とより具体的に言うこともできます。" }],
+    variations:[
+      { label:"より具体的", text:"It's about a ten-minute walk from the station." },
+      { label:"別の言い方", text:"It's close to the main train station." }
+    ]
+  },
+  {
+    id:'p113', english:"Please stop here.",
+    japanese:"ここで止めてください。", categoryId:'c7',
+    idioms:[{ term:"stop here (ここで止める)", note:"「Pull over here（ここで路肩に止めて）」とも言えます。「Right here is fine（ここで大丈夫です）」も便利。" }],
+    variations:[
+      { label:"別の言い方", text:"You can drop me off here." },
+      { label:"より丁寧", text:"Could you stop here, please?" }
+    ]
+  },
+  {
+    id:'p114', english:"Please drop me off at the main entrance.",
+    japanese:"正面玄関で降ろしてください。", categoryId:'c7',
+    idioms:[{ term:"drop me off (〜で降ろす)", note:"「drop off（降ろす・乗せていく）」という句動詞。「drop me off at〜（〜で降ろす）」は乗り物を使う場面で非常によく使います。" }],
+    variations:[
+      { label:"別の言い方", text:"The front entrance is fine, thank you." },
+      { label:"より丁寧", text:"Could you drop me off at the front of the building?" }
+    ]
+  },
+  {
+    id:'p115', english:"I am in a hurry.",
+    japanese:"急いでいます。", categoryId:'c7',
+    idioms:[{ term:"in a hurry (急いでいる)", note:"「rush（急ぐ）」の名詞形を使った表現。「I'm running late（遅れています）」「I need to be there by [time]（〜時までに着く必要があります）」も関連表現。" }],
+    variations:[
+      { label:"より具体的", text:"I need to catch a flight — could you hurry, please?" },
+      { label:"別の言い方", text:"I'm running a bit late. Could we go faster?" }
+    ]
+  },
+  {
+    id:'p116', english:"No rush. Thank you.",
+    japanese:"急がなくて大丈夫です。ありがとう。", categoryId:'c7',
+    idioms:[{ term:"no rush (急がなくていい)", note:"「Take your time（ゆっくりどうぞ）」と同じ意味。「I'm in no rush（急いでいません）」とも言えます。" }],
+    variations:[
+      { label:"別の言い方", text:"Take your time — there's no hurry." },
+      { label:"よりカジュアル", text:"No worries, we have time." }
+    ]
+  },
+  {
+    id:'p117', english:"How long does it take?",
+    japanese:"どのくらいかかりますか？", categoryId:'c7',
+    idioms:[{ term:"How long does it take? (どのくらいかかる？)", note:"時間だけでなく所要時間全般に使えます。「How long will it take to get there?（そこまでどのくらいかかりますか？）」とより具体的にも言えます。" }],
+    variations:[
+      { label:"目的地を加えて", text:"How long does it take to get to the city center?" },
+      { label:"別の言い方", text:"How far is it from here?" }
+    ]
+  },
+  {
+    id:'p118', english:"Is there much traffic now?",
+    japanese:"今、渋滞はひどいですか？", categoryId:'c7',
+    idioms:[{ term:"traffic (交通渋滞)", note:"「traffic jam（渋滞）」「heavy traffic（ひどい渋滞）」。「Is the traffic bad today?」でも同じ意味です。" }],
+    variations:[
+      { label:"別の言い方", text:"Is the traffic bad at this time of day?" },
+      { label:"迂回路を聞く", text:"Is there a faster route to avoid the traffic?" }
+    ]
+  },
+  {
+    id:'p119', english:"Can you take the fastest way?",
+    japanese:"一番早い経路でお願いします。", categoryId:'c7',
+    idioms:[{ term:"fastest way (最も速い経路)", note:"「take the fastest route（最速ルートを通る）」とも言えます。急いでいる旨を伝えたうえで言うと自然です。" }],
+    variations:[
+      { label:"別の言い方", text:"Please take the quickest route." },
+      { label:"より丁寧", text:"Could you go the fastest way? I'm in a bit of a hurry." }
+    ]
+  },
+  {
+    id:'p120', english:"Is this the right way?",
+    japanese:"これは正しい方向ですか？", categoryId:'c7',
+    idioms:[{ term:"the right way (正しい方向・経路)", note:"道を確認するだけでなく、車内で運転手に確認するときにも使えます。「Are we heading in the right direction?」も同じ意味。" }],
+    variations:[
+      { label:"別の言い方", text:"Are we going the right way?" },
+      { label:"目的地を加えて", text:"Is this the right way to the airport?" }
+    ]
+  },
+  {
+    id:'p121', english:"Are we close?",
+    japanese:"もうすぐですか？", categoryId:'c7',
+    idioms:[{ term:"close (近い)", note:"「close to〜（〜に近い）」または「Are we almost there?（もうすぐ着く？）」とも言えます。" }],
+    variations:[
+      { label:"別の言い方", text:"Are we almost there?" },
+      { label:"距離を確認", text:"How much further is it?" }
+    ]
+  },
+  {
+    id:'p122', english:"How much is it?",
+    japanese:"いくらですか？", categoryId:'c7',
+    idioms:[{ term:"How much is it? (いくらですか？)", note:"最もシンプルな料金確認の表現。タクシーではメーター（meter）を確認するのが基本ですが、固定料金のときにも使えます。" }],
+    variations:[
+      { label:"タクシーの場合", text:"How much is the fare?" },
+      { label:"より丁寧", text:"Could you tell me the total?" }
+    ]
+  },
+  {
+    id:'p123', english:"Please keep the change.",
+    japanese:"お釣りはいりません。", categoryId:'c7',
+    idioms:[{ term:"keep the change (お釣りはいらない)", note:"チップを渡す感覚で使います。正確なお釣りが必要な場合は「Could I have change for [amount]?」と言います。" }],
+    variations:[
+      { label:"チップの場合", text:"Please keep it — that's for you." },
+      { label:"別の言い方", text:"That's okay, keep the change." }
+    ]
+  },
+  {
+    id:'p124', english:"Could I get a receipt?",
+    japanese:"領収書をいただけますか？", categoryId:'c7',
+    idioms:[{ term:"receipt (領収書)", note:"「Please give me a receipt」でも通じます。ビジネス出張では経費精算のために必須です。" }],
+    variations:[
+      { label:"より丁寧", text:"Would it be possible to get a receipt?" },
+      { label:"別の言い方", text:"Can I have a receipt, please?" }
+    ]
+  },
+  {
+    id:'p125', english:"Thank you. Have a nice day.",
+    japanese:"ありがとうございます。よい一日を。", categoryId:'c7',
+    idioms:[{ term:"Have a nice day. (よい一日を)", note:"別れ際の定番フレーズ。「Have a great day」「Take care（お気をつけて）」「See you（またね）」なども同様に使えます。" }],
+    variations:[
+      { label:"別の言い方", text:"Thank you so much. Take care!" },
+      { label:"夜の場合", text:"Thank you. Have a good evening!" }
+    ]
+  },
+  {
+    id:'p126', english:"Where is the nearest subway station?",
+    japanese:"最寄りの地下鉄駅はどこですか？", categoryId:'c7',
+    idioms:[{ term:"nearest (最寄りの)", note:"「closest」と同じ意味。「subway」はアメリカ英語で、イギリスでは「underground」「tube」とも言います。" }],
+    variations:[
+      { label:"バスの場合", text:"Where is the nearest bus stop?" },
+      { label:"より丁寧", text:"Excuse me, could you tell me where the nearest station is?" }
+    ]
+  },
+  {
+    id:'p127', english:"Which exit should I use?",
+    japanese:"どの出口を使えばいいですか？", categoryId:'c7',
+    idioms:[{ term:"exit (出口)", note:"地下鉄駅では特に重要な語彙。「Which exit is closest to [destination]?（〔目的地〕に一番近い出口はどれですか？）」とより具体的に聞くこともできます。" }],
+    variations:[
+      { label:"別の言い方", text:"Which exit is for [landmark]?" },
+      { label:"より丁寧", text:"Could you tell me which exit to use for [destination]?" }
+    ]
+  },
+  {
+    id:'p128', english:"Does this bus go to the city center?",
+    japanese:"このバスは市内中心部に行きますか？", categoryId:'c7',
+    idioms:[{ term:"city center (市内中心部)", note:"「downtown（繁華街）」とも言います（主にアメリカ英語）。「Does this bus stop at [place]?（このバスは〔場所〕に止まりますか？）」とも使えます。" }],
+    variations:[
+      { label:"別の言い方", text:"Is this the bus to downtown?" },
+      { label:"より丁寧", text:"Excuse me, does this bus go to the city center?" }
+    ]
+  },
+  {
+    id:'p129', english:"I missed my stop.",
+    japanese:"乗り過ごしてしまいました。", categoryId:'c7',
+    idioms:[{ term:"miss my stop (乗り過ごす)", note:"「I went past my stop（通り過ごした）」とも言えます。気づいたらすぐ次の停留所で降りましょう。" }],
+    variations:[
+      { label:"別の言い方", text:"I think I went past my stop. Where should I get off now?" },
+      { label:"より丁寧", text:"Excuse me, I think I missed my stop — could you help me?" }
+    ]
+  },
+  {
+    id:'p130', english:"Where should I get off?",
+    japanese:"どこで降りればいいですか？", categoryId:'c7',
+    idioms:[{ term:"get off (降りる)", note:"バスや電車で「降車する」ときの句動詞。「get on（乗る）」の対義語。「Which stop should I get off at?（どの停留所で降りればいいですか？）」とも言えます。" }],
+    variations:[
+      { label:"別の言い方", text:"Which stop do I need?" },
+      { label:"より丁寧", text:"Excuse me, could you tell me where to get off for [destination]?" }
+    ]
+  },
+
+  // ── c8 カフェ・レストランフレーズ ────────────────────────────────
+
+  {
+    id:'p131', english:"A table for two, please.",
+    japanese:"2名でお願いします。", categoryId:'c8',
+    idioms:[{ term:"a table for two (2名用のテーブル)", note:"入店時の定番表現。「a table for one（1名）」「a table for four（4名）」のように人数を変えます。" }],
+    variations:[
+      { label:"3名の場合", text:"A table for three, please." },
+      { label:"予約がある場合", text:"I have a reservation for two." }
+    ]
+  },
+  {
+    id:'p132', english:"Do you have a table by the window?",
+    japanese:"窓際のテーブルはありますか？", categoryId:'c8',
+    idioms:[{ term:"by the window (窓際に)", note:"「table by the window = 窓側の席」。「outside（外）」「near the exit（出口近く）」など場所の希望もここで伝えます。" }],
+    variations:[
+      { label:"外席の場合", text:"Can we sit outside?" },
+      { label:"より丁寧", text:"Is it possible to have a table by the window?" }
+    ]
+  },
+  {
+    id:'p133', english:"How long is the wait?",
+    japanese:"どのくらい待ちますか？", categoryId:'c8',
+    idioms:[{ term:"How long is the wait? (待ち時間はどのくらい？)", note:"「What's the wait time?」とも言えます。予約なしで満席のとき使える必須フレーズ。" }],
+    variations:[
+      { label:"別の言い方", text:"Is there a long wait?" },
+      { label:"より丁寧", text:"Could you tell me how long the wait is?" }
+    ]
+  },
+  {
+    id:'p134', english:"We have a reservation under Matsumoto.",
+    japanese:"松本名義で予約しています。", categoryId:'c8',
+    idioms:[{ term:"reservation under (〜名義で予約)", note:"レストランやホテルでの予約確認の定番表現。「I booked a table for two at 7 p.m.」と詳しく言うこともできます。" }],
+    variations:[
+      { label:"別の言い方", text:"I made a reservation. The name is Matsumoto." },
+      { label:"時間を加えて", text:"I have a reservation for 7 p.m. under Matsumoto." }
+    ]
+  },
+  {
+    id:'p135', english:"Can I see the menu, please?",
+    japanese:"メニューを見せていただけますか？", categoryId:'c8',
+    idioms:[{ term:"see the menu (メニューを見る)", note:"「May I have a menu?」や「Could I get a menu?」も同じ意味。英語圏では着席後すぐにメニューが配られることが多いです。" }],
+    variations:[
+      { label:"より丁寧", text:"Could I have a look at the menu?" },
+      { label:"別の言い方", text:"May I have a menu, please?" }
+    ]
+  },
+  {
+    id:'p136', english:"What do you recommend?",
+    japanese:"おすすめは何ですか？", categoryId:'c8',
+    idioms:[{ term:"What do you recommend? (おすすめは何？)", note:"「What's your specialty?（スペシャリティは何ですか？）」「What's popular here?（人気メニューは？）」も同じ場面で使えます。" }],
+    variations:[
+      { label:"別の言い方", text:"What's your most popular dish?" },
+      { label:"より丁寧", text:"Could you recommend something for me?" }
+    ]
+  },
+  {
+    id:'p137', english:"Is this spicy?",
+    japanese:"これは辛いですか？", categoryId:'c8',
+    idioms:[{ term:"spicy (辛い)", note:"「hot（辛い）」とも言います。「mild（マイルド）」「medium（中辛）」「very spicy（激辛）」などを使って辛さレベルを確認できます。" }],
+    variations:[
+      { label:"辛さレベルを聞く", text:"How spicy is this?" },
+      { label:"別の言い方", text:"Is there chili in this dish?" }
+    ]
+  },
+  {
+    id:'p138', english:"What is in this dish?",
+    japanese:"この料理には何が入っていますか？", categoryId:'c8',
+    idioms:[{ term:"What is in ...? (〜には何が入っているの？)", note:"アレルギーや食の制限がある場合に必ず確認しましょう。「Does this contain nuts?（ナッツは入っていますか？）」などアレルゲンを直接聞く方が確実です。" }],
+    variations:[
+      { label:"アレルギー確認", text:"Does this contain any nuts or dairy?" },
+      { label:"より丁寧", text:"Could you tell me what's in this dish?" }
+    ]
+  },
+  {
+    id:'p139', english:"I'd like this one, please.",
+    japanese:"これをください。", categoryId:'c8',
+    idioms:[{ term:"I'd like ... (〜をください)", note:"指差しながら使える最も汎用性の高い注文表現。メニューや展示物を指しながら「I'd like this one」と言うだけで通じます。" }],
+    variations:[
+      { label:"番号で注文", text:"I'd like number 5, please." },
+      { label:"より丁寧", text:"I think I'll have this one." }
+    ]
+  },
+  {
+    id:'p140', english:"Can I get it without onions?",
+    japanese:"玉ねぎなしでいただけますか？", categoryId:'c8',
+    idioms:[{ term:"without (〜なしで)", note:"食材を除いてほしいときの基本表現。「without onions（玉ねぎなし）」「without dairy（乳製品なし）」のように使います。" }],
+    variations:[
+      { label:"別の食材", text:"Can I get it without mushrooms?" },
+      { label:"より丁寧", text:"Is it possible to leave out the onions?" }
+    ]
+  },
+  {
+    id:'p141', english:"Can I have it to go?",
+    japanese:"持ち帰りにできますか？", categoryId:'c8',
+    idioms:[{ term:"to go (持ち帰りで)", note:"アメリカ英語。イギリス英語では「to take away」。店内で食べる場合は「for here（ここで）」。" }],
+    variations:[
+      { label:"別の言い方", text:"Can I take this away?" },
+      { label:"カフェで確認", text:"Is that for here or to go?" }
+    ]
+  },
+  {
+    id:'p142', english:"Excuse me, this is not what I ordered.",
+    japanese:"すみません、頼んだものと違います。", categoryId:'c8',
+    idioms:[{ term:"this is not what I ordered (注文したものと違う)", note:"丁寧に間違いを伝える表現。「I think there may be a mistake（間違いがあると思います）」と添えるとより柔らかくなります。" }],
+    variations:[
+      { label:"より丁寧", text:"I'm sorry, but I think there may be a mistake — this isn't what I ordered." },
+      { label:"別の言い方", text:"Excuse me, I ordered [dish], not this." }
+    ]
+  },
+  {
+    id:'p143', english:"Can I have another fork, please?",
+    japanese:"フォークをもう一本いただけますか？", categoryId:'c8',
+    idioms:[{ term:"another (もう一つの)", note:"「one more」と同じ意味。「another fork（別のフォーク）」「another napkin（別のナプキン）」のように使います。" }],
+    variations:[
+      { label:"別の食器", text:"Can I have a clean spoon, please?" },
+      { label:"より丁寧", text:"Excuse me, could I have another fork?" }
+    ]
+  },
+  {
+    id:'p144', english:"We are still waiting for our food.",
+    japanese:"料理をまだ待っています。", categoryId:'c8',
+    idioms:[{ term:"still waiting (まだ待っている)", note:"「We've been waiting for a while（しばらく待っています）」と加えると状況が伝わりやすいです。" }],
+    variations:[
+      { label:"より丁寧", text:"Excuse me, we've been waiting for our food for a while." },
+      { label:"別の言い方", text:"Our food hasn't arrived yet." }
+    ]
+  },
+  {
+    id:'p145', english:"Can we have the bill, please?",
+    japanese:"お会計をお願いします。", categoryId:'c8',
+    idioms:[{ term:"bill (お会計・伝票)", note:"イギリス英語では「bill」、アメリカ英語では「check」。「the bill」と「the check」どちらも通じます。" }],
+    variations:[
+      { label:"アメリカ式", text:"Can we have the check, please?" },
+      { label:"より丁寧", text:"Whenever you're ready, could we have the bill?" }
+    ]
+  },
+  {
+    id:'p146', english:"Do you take cash?",
+    japanese:"現金は使えますか？", categoryId:'c8',
+    idioms:[{ term:"take cash (現金を受け付ける)", note:"「Do you accept cash?」とも言います。「take」は「受け取る・受け付ける」という意味でも使われます。" }],
+    variations:[
+      { label:"別の言い方", text:"Is cash okay?" },
+      { label:"カードの場合", text:"Do you accept credit cards?" }
+    ]
+  },
+  {
+    id:'p147', english:"Can we pay separately?",
+    japanese:"別々に支払えますか？", categoryId:'c8',
+    idioms:[{ term:"pay separately (別々に払う)", note:"「split the bill（割り勘にする）」とも言えます。「We'd like to split the bill（割り勘にしたいです）」も覚えておきましょう。" }],
+    variations:[
+      { label:"別の言い方", text:"Can we split the bill?" },
+      { label:"割り勘希望", text:"We'd like to pay separately, please." }
+    ]
+  },
+  {
+    id:'p148', english:"For here, please.",
+    japanese:"こちらで食べます。", categoryId:'c8',
+    idioms:[{ term:"for here (店内で食べる)", note:"「to go（持ち帰り）」の対義語。カフェや軽食店でよく「for here or to go?」と聞かれます。" }],
+    variations:[
+      { label:"持ち帰りの場合", text:"To go, please." },
+      { label:"別の言い方", text:"I'll eat here." }
+    ]
+  },
+  {
+    id:'p149', english:"Can I have less sugar?",
+    japanese:"砂糖を少なめにしていただけますか？", categoryId:'c8',
+    idioms:[{ term:"less sugar (砂糖控えめ)", note:"「easy on the sugar（砂糖控えめで）」とも言います。「no sugar（砂糖なし）」「half sugar（砂糖半分）」など調整できます。" }],
+    variations:[
+      { label:"砂糖なし", text:"No sugar, please." },
+      { label:"別の言い方", text:"Could you go easy on the sugar?" }
+    ]
+  },
+  {
+    id:'p150', english:"Can I use Wi-Fi here?",
+    japanese:"ここでWi-Fiは使えますか？", categoryId:'c8',
+    idioms:[{ term:"use Wi-Fi (Wi-Fiを使う)", note:"Wi-Fiパスワードを聞くときは「What's the Wi-Fi password?」または「Is there a password for the Wi-Fi?」と続けて聞きましょう。" }],
+    variations:[
+      { label:"パスワードも聞く", text:"Can I use the Wi-Fi? What's the password?" },
+      { label:"別の言い方", text:"Is there free Wi-Fi here?" }
+    ]
+  },
+  {
+    id:'p151', english:"Is this seat taken?",
+    japanese:"この席は空いていますか？", categoryId:'c8',
+    idioms:[{ term:"Is this seat taken? (この席は塞がっていますか？)", note:"「taken」は「使われている」の意味。「Is this seat free?（この席は空いていますか？）」とも言えます。返事は「No, go ahead（いいえ、どうぞ）」。" }],
+    variations:[
+      { label:"別の言い方", text:"Is anyone sitting here?" },
+      { label:"より丁寧", text:"Excuse me, is this seat free?" }
+    ]
+  },
+  {
+    id:'p152', english:"Could I have some more water?",
+    japanese:"お水をもう少しいただけますか？", categoryId:'c8',
+    idioms:[{ term:"some more water (お水をもう少し)", note:"「more」だけでも通じますが「some more」の方が自然。「a refill（お替わり）」という表現も使えます。" }],
+    variations:[
+      { label:"別の言い方", text:"Can I get a refill on the water?" },
+      { label:"より丁寧", text:"Would you mind refilling my water?" }
+    ]
+  },
+  {
+    id:'p153', english:"What's your daily special?",
+    japanese:"本日のスペシャルは何ですか？", categoryId:'c8',
+    idioms:[{ term:"daily special (本日の特別メニュー)", note:"「today's special」とも言います。シェフのおすすめや日替わりメニューを指します。新鮮な食材を使った特別料理であることが多いです。" }],
+    variations:[
+      { label:"別の言い方", text:"Do you have any specials today?" },
+      { label:"より丁寧", text:"Could you tell me what the specials are?" }
+    ]
+  },
+  {
+    id:'p154', english:"Could I have the dessert menu, please?",
+    japanese:"デザートメニューをいただけますか？", categoryId:'c8',
+    idioms:[{ term:"dessert menu (デザートメニュー)", note:"食後に別で持ってくるレストランが多いです。「What desserts do you have?（どんなデザートがありますか？）」とも聞けます。" }],
+    variations:[
+      { label:"別の言い方", text:"What desserts do you have?" },
+      { label:"より丁寧", text:"May I see the dessert menu?" }
+    ]
+  },
+
+  // ── c9 道に迷った時フレーズ ──────────────────────────────────────
+
+  {
+    id:'p155', english:"Where am I now?",
+    japanese:"今、ここはどこですか？（自分の現在地を確認する）", categoryId:'c9',
+    idioms:[{ term:"Where am I? (今どこにいるの？)", note:"スマホの地図アプリを見ながら使うこともあります。「Can you show me on the map where we are?」と続けることもできます。" }],
+    variations:[
+      { label:"地図を見せながら", text:"Could you show me where I am on this map?" },
+      { label:"別の言い方", text:"I'm a little lost. Can you help me?" }
+    ]
+  },
+  {
+    id:'p156', english:"Is this the right way to the station?",
+    japanese:"これは駅への正しい道ですか？", categoryId:'c9',
+    idioms:[{ term:"the right way (正しい方向・道)", note:"「Am I going the right way?」とも言えます。目的地によって「to the museum」「to the hotel」などと変えます。" }],
+    variations:[
+      { label:"別の言い方", text:"Am I heading in the right direction for the station?" },
+      { label:"シンプルに", text:"Is the station this way?" }
+    ]
+  },
+  {
+    id:'p157', english:"How can I get to the museum?",
+    japanese:"博物館にはどうやって行けますか？", categoryId:'c9',
+    idioms:[{ term:"How can I get to ...? (〜にはどうやって行けば？)", note:"道案内を求める最も汎用的な表現。「How do I get to...?」とも言います。" }],
+    variations:[
+      { label:"別の言い方", text:"What's the best way to get to the museum?" },
+      { label:"より丁寧", text:"Excuse me, could you tell me how to get to the museum?" }
+    ]
+  },
+  {
+    id:'p158', english:"Is it far from here?",
+    japanese:"ここから遠いですか？", categoryId:'c9',
+    idioms:[{ term:"far from here (ここから遠い)", note:"「close to here（ここから近い）」の反対。歩ける距離かどうかを確認するのに便利。「Is it within walking distance?」も使えます。" }],
+    variations:[
+      { label:"別の言い方", text:"Is it within walking distance?" },
+      { label:"より丁寧", text:"Excuse me, is it very far from here?" }
+    ]
+  },
+  {
+    id:'p159', english:"Can I walk there?",
+    japanese:"そこまで歩いていけますか？", categoryId:'c9',
+    idioms:[{ term:"walk there (歩いてそこに行く)", note:"「Is it walkable?（歩いていける距離ですか？）」とも言えます。距離の目安を聞くときは「How long does it take on foot?」を続けます。" }],
+    variations:[
+      { label:"続けて聞く", text:"Can I walk there? How long does it take?" },
+      { label:"別の言い方", text:"Is it possible to walk from here?" }
+    ]
+  },
+  {
+    id:'p160', english:"How long does it take on foot?",
+    japanese:"歩いてどのくらいかかりますか？", categoryId:'c9',
+    idioms:[{ term:"on foot (徒歩で)", note:"「by foot」とも言います。交通機関を使う場合は「by train（電車で）」「by bus（バスで）」。" }],
+    variations:[
+      { label:"別の言い方", text:"How far is it on foot?" },
+      { label:"移動手段も聞く", text:"How long does it take to walk, or would you recommend taking a bus?" }
+    ]
+  },
+  {
+    id:'p161', english:"Can you show me on this map?",
+    japanese:"この地図で見せていただけますか？", categoryId:'c9',
+    idioms:[{ term:"show me on the map (地図で見せる)", note:"スマホの地図アプリを開いて見せながら使う表現。「Could you point it out on the map?」とも言えます。" }],
+    variations:[
+      { label:"別の言い方", text:"Could you point to it on my map?" },
+      { label:"より丁寧", text:"Excuse me, could you show me on this map where I need to go?" }
+    ]
+  },
+  {
+    id:'p162', english:"Which bus should I take?",
+    japanese:"どのバスに乗ればいいですか？", categoryId:'c9',
+    idioms:[{ term:"which bus (どのバス)", note:"「which + 乗り物」で「どの〜に乗るべきか」を聞けます。例: Which train should I take? / Which line do I need?" }],
+    variations:[
+      { label:"電車の場合", text:"Which train should I take to get there?" },
+      { label:"より丁寧", text:"Could you tell me which bus goes to [destination]?" }
+    ]
+  },
+  {
+    id:'p163', english:"Do I need to change trains?",
+    japanese:"乗り換えは必要ですか？", categoryId:'c9',
+    idioms:[{ term:"change trains (電車を乗り換える)", note:"「transfer（乗り換える）」とも言います。「Do I need to transfer?」でも同じ意味。" }],
+    variations:[
+      { label:"別の言い方", text:"Do I need to transfer anywhere?" },
+      { label:"より丁寧", text:"Is this a direct train, or do I need to change?" }
+    ]
+  },
+  {
+    id:'p164', english:"I think I am on the wrong train.",
+    japanese:"乗る電車を間違えたと思います。", categoryId:'c9',
+    idioms:[{ term:"wrong train (違う電車)", note:"「I got on the wrong train」とも言えます（過去形）。「wrong bus/line/platform」のように他にも使えます。" }],
+    variations:[
+      { label:"別の言い方", text:"I got on the wrong train. How do I get back?" },
+      { label:"より丁寧", text:"Excuse me, I think I may have taken the wrong train." }
+    ]
+  },
+  {
+    id:'p165', english:"My phone battery is dead.",
+    japanese:"携帯の電池が切れました。", categoryId:'c9',
+    idioms:[{ term:"battery is dead (電池が切れた)", note:"「My phone died（スマホが落ちた）」とも言えます。「My phone is running out of battery（バッテリーが少ない）」は「もうすぐ切れそう」のニュアンス。" }],
+    variations:[
+      { label:"バッテリー残量が少ない", text:"My phone battery is almost dead." },
+      { label:"充電を頼む", text:"My phone is dead. Is there somewhere I can charge it?" }
+    ]
+  },
+  {
+    id:'p166', english:"Do you know a place with free Wi-Fi?",
+    japanese:"無料Wi-Fiが使える場所を知っていますか？", categoryId:'c9',
+    idioms:[{ term:"free Wi-Fi (無料Wi-Fi)", note:"「public Wi-Fi（公共Wi-Fi）」「complimentary Wi-Fi（無料Wi-Fi）」とも言います。カフェやコンビニで探すと見つかることが多いです。" }],
+    variations:[
+      { label:"別の言い方", text:"Is there a café with free Wi-Fi nearby?" },
+      { label:"より丁寧", text:"Excuse me, do you know where I can find free Wi-Fi?" }
+    ]
+  },
+  {
+    id:'p167', english:"Is this area safe?",
+    japanese:"この辺は安全ですか？", categoryId:'c9',
+    idioms:[{ term:"safe (安全な)", note:"夜間の外出や観光客が多い地域では確認するのが重要。「Is it safe to walk here at night?（夜にここを歩くのは安全ですか？）」と続けることもできます。" }],
+    variations:[
+      { label:"夜間を確認", text:"Is it safe to walk around here at night?" },
+      { label:"より丁寧", text:"Excuse me, is this neighborhood generally safe?" }
+    ]
+  },
+  {
+    id:'p168', english:"Should I take a taxi instead?",
+    japanese:"タクシーを使った方がいいですか？", categoryId:'c9',
+    idioms:[{ term:"instead (代わりに)", note:"「instead」は「〜の代わりに」という意味。「Should I take a taxi instead of walking?」と詳しく言うこともできます。" }],
+    variations:[
+      { label:"別の言い方", text:"Would a taxi be better from here?" },
+      { label:"より丁寧", text:"Do you think it's better to take a taxi to get there?" }
+    ]
+  },
+  {
+    id:'p169', english:"Is there a police station near here?",
+    japanese:"近くに警察署はありますか？", categoryId:'c9',
+    idioms:[{ term:"police station (警察署)", note:"緊急時は「Call the police!（警察を呼んでください！）」「Help!（助けて！）」を使います。「embassy（大使館）」「hospital（病院）」も緊急時に使える重要語彙です。" }],
+    variations:[
+      { label:"大使館の場合", text:"Is there a Japanese embassy near here?" },
+      { label:"病院", text:"Is there a hospital near here?" }
+    ]
+  },
+  {
+    id:'p170', english:"Is it next to the bank?",
+    japanese:"銀行の隣ですか？", categoryId:'c9',
+    idioms:[{ term:"next to (隣に)", note:"「near（近く）」と違い、「next to」は「すぐ隣・横」という意味。他の目印: across from（〜の向かい）、behind（〜の後ろ）、in front of（〜の前）。" }],
+    variations:[
+      { label:"別の目印", text:"Is it across from the post office?" },
+      { label:"より丁寧", text:"Could you help me — is it near the bank?" }
+    ]
+  },
+
+  // ── c10 軽い雑談フレーズ ─────────────────────────────────────────
+
+  {
+    id:'p171', english:"Are you from this city?",
+    japanese:"この街の出身ですか？", categoryId:'c10',
+    idioms:[{ term:"are you from ...? (〜の出身ですか？)", note:"「Where are you from?（どちらのご出身ですか？）」より具体的な聞き方。相手がいる場所について話すきっかけになります。" }],
+    variations:[
+      { label:"より丁寧", text:"Excuse me, are you a local?" },
+      { label:"別の言い方", text:"Do you live around here?" }
+    ]
+  },
+  {
+    id:'p172', english:"This city is very nice.",
+    japanese:"この街はとても素敵ですね。", categoryId:'c10',
+    idioms:[{ term:"nice (素敵な・良い)", note:"「beautiful（美しい）」「wonderful（素晴らしい）」「charming（魅力的な）」などに言い換えるとより印象的な表現になります。" }],
+    variations:[
+      { label:"より具体的", text:"I love this city. The atmosphere is wonderful." },
+      { label:"別の言い方", text:"What a beautiful city this is." }
+    ]
+  },
+  {
+    id:'p173', english:"The people here are very kind.",
+    japanese:"ここの人々はとても親切ですね。", categoryId:'c10',
+    idioms:[{ term:"kind (親切な)", note:"「friendly（フレンドリーな）」「welcoming（歓迎してくれる）」「helpful（助けてくれる）」なども使えます。地元の人への感謝を伝える一言です。" }],
+    variations:[
+      { label:"別の言い方", text:"Everyone here has been so friendly." },
+      { label:"より丁寧", text:"I've found the people here to be very warm and welcoming." }
+    ]
+  },
+  {
+    id:'p174', english:"Is this place popular?",
+    japanese:"この場所は人気ですか？", categoryId:'c10',
+    idioms:[{ term:"popular (人気の)", note:"「well-known（有名な）」「famous（有名な）」と似た意味。「Is this a famous spot?（ここは有名な場所ですか？）」とも言えます。" }],
+    variations:[
+      { label:"別の言い方", text:"Is this a famous spot?" },
+      { label:"より丁寧", text:"Is this area popular with tourists?" }
+    ]
+  },
+  {
+    id:'p175', english:"What food is popular here?",
+    japanese:"この土地で人気の料理は何ですか？", categoryId:'c10',
+    idioms:[{ term:"popular food (人気の料理)", note:"「local specialty（地元の名物）」という表現も使えます。「What should I try here?（ここで何を食べるべきですか？）」もおすすめです。" }],
+    variations:[
+      { label:"別の言い方", text:"What's the local specialty?" },
+      { label:"より丁寧", text:"Could you recommend any local food I should try?" }
+    ]
+  },
+  {
+    id:'p176', english:"Do you know a good café near here?",
+    japanese:"近くにおすすめのカフェはありますか？", categoryId:'c10',
+    idioms:[{ term:"do you know〜? (〜を知っていますか？)", note:"道案内でも使える汎用表現。「good restaurant」「good bar」などに変えて使えます。" }],
+    variations:[
+      { label:"レストランの場合", text:"Do you know a good restaurant around here?" },
+      { label:"より丁寧", text:"Could you recommend a nice café nearby?" }
+    ]
+  },
+  {
+    id:'p177', english:"What do you recommend?",
+    japanese:"何かおすすめはありますか？", categoryId:'c10',
+    idioms:[{ term:"recommend (おすすめする)", note:"カフェ・レストランだけでなく、観光地、お土産、現地の文化体験など幅広い場面で使えます。" }],
+    variations:[
+      { label:"より具体的", text:"What would you recommend for a first-time visitor?" },
+      { label:"別の言い方", text:"What's your favorite thing about this city?" }
+    ]
+  },
+  {
+    id:'p178', english:"That is very kind of you.",
+    japanese:"ご親切にありがとうございます。", categoryId:'c10',
+    idioms:[{ term:"that is very kind of you (ご親切に)", note:"「how kind of you！（なんてご親切な！）」も同じ場面で使えます。手助けやアドバイスをしてもらったときの感謝の言葉です。" }],
+    variations:[
+      { label:"別の言い方", text:"How kind of you! I really appreciate that." },
+      { label:"カジュアル", text:"That's so sweet of you, thank you!" }
+    ]
+  },
+  {
+    id:'p179', english:"You helped me a lot.",
+    japanese:"大変助かりました。", categoryId:'c10',
+    idioms:[{ term:"You helped me a lot (大変助かった)", note:"「You were a great help（大変助かりました）」でも同じ意味。「a lot」を「so much」に変えるとより強い感謝になります。" }],
+    variations:[
+      { label:"より丁寧", text:"You've been a great help. Thank you so much." },
+      { label:"別の言い方", text:"I couldn't have done it without you." }
+    ]
+  },
+  {
+    id:'p180', english:"I will try to find it.",
+    japanese:"探してみます。", categoryId:'c10',
+    idioms:[{ term:"I will try to (〜してみます)", note:"「I'll give it a try（やってみます）」とも言えます。道案内を受けた後に「頑張って探してみます」という気持ちを伝えるフレーズ。" }],
+    variations:[
+      { label:"別の言い方", text:"I'll give it a try. Thank you!" },
+      { label:"自信を持って", text:"I think I can find it now. Thank you so much." }
+    ]
+  },
+  {
+    id:'p181', english:"Have a nice day.",
+    japanese:"よい一日を。", categoryId:'c10',
+    idioms:[{ term:"Have a nice day. (よい一日を)", note:"別れ際の定番フレーズ。「Have a great day」「Have a wonderful day」と強調することもできます。夜なら「Have a nice evening」。" }],
+    variations:[
+      { label:"夜の場合", text:"Have a good evening!" },
+      { label:"より丁寧", text:"It was a pleasure talking to you. Have a wonderful day!" }
+    ]
+  },
+  {
+    id:'p182', english:"Enjoy your day too.",
+    japanese:"あなたもよい一日を。", categoryId:'c10',
+    idioms:[{ term:"enjoy your day too (あなたも〜)", note:"「You too（あなたも）」の丁寧版。「too」や「as well」を加えることで相手への気遣いを示します。「Same to you（同じく）」も使えます。" }],
+    variations:[
+      { label:"シンプルに", text:"You too!" },
+      { label:"別の言い方", text:"Same to you — have a great day!" }
+    ]
+  },
+
+];
+
+// ── Storage hook ──────────────────────────────────────────────────
+function useStorage(key, init) {
+  const [state, setState] = useState(() => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; } catch { return init; }
+  });
+  const upd = useCallback((fn) => {
+    setState(prev => {
+      const next = typeof fn === 'function' ? fn(prev) : fn;
+      try { localStorage.setItem(key, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, [key]);
+  return [state, upd];
+}
+
+// ── SM-2 ──────────────────────────────────────────────────────────
+function defProg(phraseId) {
+  return { phraseId, streak:0, intervalDays:0, nextReviewAt:now(), totalReviews:0, lastScore:null, easeFactor:2.5 };
+}
+function nextProg(p, score) {
+  const n = { ...p, totalReviews:p.totalReviews+1, lastScore:score };
+  if (score==='again') {
+    n.streak=0; n.intervalDays=0; n.easeFactor=Math.max(1.3, n.easeFactor-0.2); n.nextReviewAt=daysLater(0);
+  } else if (score==='hard') {
+    n.streak=Math.max(1,n.streak+1); n.intervalDays=Math.max(1,Math.round((n.intervalDays||1)*1.3));
+    n.easeFactor=Math.max(1.5,n.easeFactor-0.05); n.nextReviewAt=daysLater(n.intervalDays);
+  } else {
+    n.streak+=1; n.easeFactor=Math.min(3.0,n.easeFactor+0.08);
+    n.intervalDays=n.intervalDays===0?2:Math.round(n.intervalDays*n.easeFactor);
+    n.nextReviewAt=daysLater(n.intervalDays);
+  }
+  return n;
+}
+
+// ── Feedback ──────────────────────────────────────────────────────
+function buildFeedback(userAnswer, phrase) {
+  if (!userAnswer.trim()) return null;
+  const u=norm(userAnswer), c=norm(phrase.english);
+  const uW=u.split(' '), cW=c.split(' ');
+  const ratio = cW.length ? cW.filter(w=>uW.includes(w)).length/cW.length : 0;
+  const exact = u===c;
+  const improved = phrase.english.replace(/^Can you /,'Could you ').replace(/^I want to /,"I'd like to ");
+  const casual = phrase.english.replace(/^Could you /,'Can you ').replace(/^Could I /,'Can I ').replace(/^May I /,'Can I ').replace(/^I would like to /,"I'd like to ");
+  if (exact)      return { level:'perfect', icon:'🎯', msg:'パーフェクト！そのまま使えます。', improved, casual };
+  if (ratio>=0.8) return { level:'good',    icon:'👍', msg:'ほぼ正解！細かい部分だけ確認を。', improved, casual };
+  if (ratio>=0.45)return { level:'ok',      icon:'🤔', msg:'伝わりそうですが、より自然な言い方を確認しましょう。', improved, casual };
+  return           { level:'retry',  icon:'💪', msg:'正解フレーズを確認して、もう一度チャレンジ！', improved, casual };
+}
+
+// ── Clipboard ─────────────────────────────────────────────────────
+function copyText(text) {
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text).catch(()=>fallback(text));
+  fallback(text);
+}
+function fallback(text) {
+  const ta = document.createElement('textarea');
+  ta.value=text; ta.style.cssText='position:fixed;opacity:0';
+  document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+}
+function makePrompt(phrase, userAnswer) {
+  return `英会話フレーズの添削をお願いします。
+
+【問題（日本語）】${phrase.japanese}
+【正解フレーズ】${phrase.english}
+【私の回答】${userAnswer || '（未入力）'}
+
+以下を教えてください：
+1. 私の回答の自然さ（5段階評価）
+2. 改善点があれば具体的に
+3. よりネイティブな言い方があれば
+4. このフレーズを使う場面のワンポイントアドバイス`;
+}
+
+// ── SVG Icons ─────────────────────────────────────────────────────
+const IconHome = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/>
+  </svg>
+);
+const IconCards = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+  </svg>
+);
+const IconList = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/>
+    <circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/>
+  </svg>
+);
+
+// ═══════════════════════════════════════════════════════════════════
+// APP
+// ═══════════════════════════════════════════════════════════════════
+function App() {
+  const initProg = useMemo(() => Object.fromEntries(PHRASE_DATA.map(p=>[p.id,defProg(p.id)])), []);
+  const [progMap, updProg] = useStorage(KEYS.progress, initProg);
+  const [logs,    updLogs] = useStorage(KEYS.logs,     []);
+
+  const [screen, setScreen]    = useState('home');
+  const [studyState, setStudy] = useState(null);
+
+  const cats       = CAT_DATA;
+  const phrases    = PHRASE_DATA;
+  const sortedCats = useMemo(() => [...cats].sort((a,b)=>a.sortOrder-b.sortOrder), [cats]);
+  const totalPhrases = phrases.length;
+  const totalReviews = Object.values(progMap).reduce((s,p)=>s+(p.totalReviews||0),0);
+  const todayCount   = logs.filter(l=>new Date(l.reviewedAt).toDateString()===new Date().toDateString()).length;
+
+  function startStudy(mode, catId) {
+    let target = [...phrases];
+    if (mode==='category'&&catId) target=target.filter(p=>p.categoryId===catId);
+    if (mode==='weak') target=target.filter(p=>{ const pr=progMap[p.id]||defProg(p.id); return pr.lastScore==='again'||pr.intervalDays<=1; });
+    target.sort((a,b)=>new Date((progMap[a.id]||defProg(a.id)).nextReviewAt)-new Date((progMap[b.id]||defProg(b.id)).nextReviewAt));
+    const ids = target.slice(0,10).map(p=>p.id);
+    if (!ids.length) { alert('練習できるフレーズがありません。'); return; }
+    setStudy({ ids, index:0, showAnswer:false, answer:'', showHint:false, feedback:null });
+    setScreen('study');
+  }
+
+  function revealAnswer() {
+    const phrase = phrases.find(p=>p.id===studyState?.ids[studyState.index]);
+    if (!phrase) return;
+    setStudy(s=>({ ...s, showAnswer:true, feedback:buildFeedback(s.answer, phrase) }));
+  }
+
+  function recordScore(score) {
+    const pid = studyState?.ids[studyState.index];
+    updProg(prev=>({...prev,[pid]:nextProg(prev[pid]||defProg(pid),score)}));
+    updLogs(prev=>[{id:uid(),phraseId:pid,selfScore:score,userAnswer:studyState.answer,reviewedAt:now()},...prev].slice(0,2000));
+    const next = studyState.index+1;
+    if (next>=studyState.ids.length) setStudy(s=>({...s,index:next}));
+    else setStudy(s=>({...s,index:next,showAnswer:false,answer:'',showHint:false,feedback:null}));
+  }
+
+  const NAV = [
+    { key:'home',  icon:<IconHome />,  label:'ホーム' },
+    { key:'study', icon:<IconCards />, label:'練習' },
+    { key:'list',  icon:<IconList />,  label:'一覧' },
+  ];
+  const TITLES = { home:'英会話トレーナー', study:'練習', list:'フレーズ一覧' };
+
+  return (
+    <div>
+      <div className="header">
+        <div className="header-title">{TITLES[screen]}</div>
+      </div>
+      <div className="content">
+        {screen==='home'  && <HomeScreen sortedCats={sortedCats} phrases={phrases} totalPhrases={totalPhrases} totalReviews={totalReviews} todayCount={todayCount} onStart={startStudy} />}
+        {screen==='study' && <StudyScreen state={studyState} setState={setStudy} phrases={phrases} cats={cats} onReveal={revealAnswer} onScore={recordScore} onExit={()=>setScreen('home')} />}
+        {screen==='list'  && <ListScreen phrases={phrases} cats={sortedCats} progMap={progMap} />}
+      </div>
+      <nav className="nav">
+        {NAV.map(item=>(
+          <button key={item.key} className={`nav-item ${screen===item.key?'active':''}`}
+            onClick={()=>{ if(item.key==='study'){if(phrases.length)startStudy('all');}else setScreen(item.key); }}>
+            {item.icon}
+            {item.label}
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════════════════════════════
+function HomeScreen({ sortedCats, phrases, totalPhrases, totalReviews, todayCount, onStart }) {
+  return (
+    <div>
+      <div className="stats-row">
+        <div className="stat-card"><div className="stat-num">{totalPhrases}</div><div className="stat-label">フレーズ</div></div>
+        <div className="stat-card"><div className="stat-num">{totalReviews}</div><div className="stat-label">総練習回数</div></div>
+        <div className="stat-card"><div className="stat-num">{todayCount}</div><div className="stat-label">今日の回数</div></div>
+      </div>
+      <button className="btn btn-primary mb-8" onClick={()=>onStart('all')}>▶ 今日の練習（全カテゴリ）</button>
+      <button className="btn btn-ghost w-full mb-16" onClick={()=>onStart('weak')}>🔥 苦手フレーズを集中練習</button>
+      <div className="section-label">カテゴリ別に練習</div>
+      {sortedCats.map(cat=>{
+        const cnt=phrases.filter(p=>p.categoryId===cat.id).length;
+        return(
+          <button key={cat.id} className="cat-btn" onClick={()=>onStart('category',cat.id)}>
+            <span className="flex-1">{cat.name}</span>
+            <span style={{fontSize:12,color:'#9ca3af'}}>{cnt}件 ›</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STUDY
+// ═══════════════════════════════════════════════════════════════════
+function StudyScreen({ state, setState, phrases, cats, onReveal, onScore, onExit }) {
+  if (!state) return null;
+  const { ids, index, showAnswer, answer, showHint, feedback } = state;
+
+  if (index>=ids.length) return(
+    <div className="session-done">
+      <div className="big-emoji">🎉</div>
+      <h2>セッション完了！</h2>
+      <p className="text-sub mt-8">{ids.length}問 お疲れ様でした</p>
+      <div className="mt-16"><button className="btn btn-primary" onClick={onExit}>ホームに戻る</button></div>
+    </div>
+  );
+
+  const phrase = phrases.find(p=>p.id===ids[index]);
+  if (!phrase) return null;
+  const cat      = cats.find(c=>c.id===phrase.categoryId);
+  const kws      = guessKw(phrase.english);
+  const idioms   = phrase.idioms   || [];
+  const variants = phrase.variations || [];
+  const progress = (index/ids.length)*100;
+  const fbClass  = { perfect:'fb-perfect', good:'fb-good', ok:'fb-ok', retry:'fb-retry' };
+
+  function requestClaude() {
+    copyText(makePrompt(phrase, answer));
+    window.open('https://claude.ai', '_blank');
+    setTimeout(()=>alert('プロンプトをコピーしました！\n開いたClaudeのタブで Ctrl+V で貼り付けてください。'), 300);
+  }
+
+  return(
+    <div>
+      <div className="flex items-center gap-8 mb-12">
+        <button className="btn btn-ghost btn-sm" onClick={onExit}>✕ 終了</button>
+        <div className="prog-wrap"><div className="prog-fill" style={{width:`${progress}%`}}></div></div>
+        <span className="text-sm text-sub">{index+1}/{ids.length}</span>
+      </div>
+
+      <div className="study-card">
+        <div className="study-cat">{cat?.name}</div>
+        <div className="study-jp">{phrase.japanese}</div>
+        {!showHint
+          ? <button className="btn btn-ghost btn-sm" onClick={()=>setState(s=>({...s,showHint:true}))}>💡 ヒントを見る</button>
+          : <div className="hint-area">
+              {kws.length>0 ? kws.map(kw=><span key={kw} className="tag">{kw}</span>) : <span className="text-sm text-sub">ヒントなし</span>}
+            </div>
+        }
+      </div>
+
+      {!showAnswer && (
+        <div>
+          <textarea className="input mb-8" rows={3}
+            placeholder="英語で答えを入力してください"
+            value={answer} onChange={e=>setState(s=>({...s,answer:e.target.value}))} />
+          <button className="btn btn-primary" onClick={onReveal}>
+            {answer.trim() ? '✓ 答えを確認する ＋ 添削' : '→ 答えだけ確認する'}
+          </button>
+        </div>
+      )}
+
+      {showAnswer && (
+        <div>
+          <div className="compare-box">
+            <div className="section-label" style={{marginBottom:10}}>回答比較</div>
+            <div className="compare-row">
+              <span className="compare-label">あなたの回答</span>
+              <span className="compare-text user-ans">{answer.trim() || '（未入力）'}</span>
+            </div>
+            <div className="divider" style={{margin:'10px 0'}}></div>
+            <div className="compare-row">
+              <span className="compare-label">正解</span>
+              <span className="compare-text correct">{phrase.english}</span>
+            </div>
+          </div>
+
+          {feedback ? (
+            <div className={`feedback-box ${fbClass[feedback.level]}`}>
+              <div style={{fontSize:15,fontWeight:700,marginBottom:8}}>{feedback.icon} {feedback.msg}</div>
+              {norm(feedback.improved)!==norm(phrase.english) && (
+                <div className="text-sm mt-8"><span className="font-bold">より丁寧：</span> {feedback.improved}</div>
+              )}
+              {norm(feedback.casual)!==norm(phrase.english) && norm(feedback.casual)!==norm(feedback.improved) && (
+                <div className="text-sm mt-8"><span className="font-bold">カジュアル：</span> {feedback.casual}</div>
+              )}
+              <div className="mt-12">
+                <button className="btn btn-purple btn-sm" onClick={requestClaude}>
+                  🤖 Claudeに詳しい添削を依頼（コピー＋タブを開く）
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="card" style={{color:'var(--text-sub)',fontSize:14}}>未入力のため添削なし</div>
+          )}
+
+          {idioms.length>0 && (
+            <div className="idiom-box">
+              <div className="section-label">💡 イディオム・表現解説</div>
+              {idioms.map((id,i)=>(
+                <div key={i} className="idiom-item">
+                  <div className="idiom-term">{id.term}</div>
+                  <div className="idiom-note">{id.note}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {variants.length>0 && (
+            <div className="idiom-box" style={{background:'#f0fdf4', borderColor:'#86efac'}}>
+              <div className="section-label">🔄 バリエーション</div>
+              {variants.map((v,i)=>(
+                <div key={i} className="idiom-item">
+                  <div className="idiom-term" style={{color:'#16a34a'}}>{v.label}</div>
+                  <div className="idiom-note">{v.text}</div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="score-grid">
+            <button className="score-btn score-again" onClick={()=>onScore('again')}>
+              <span className="emoji">😓</span><span>できない</span><span style={{fontSize:10,opacity:.7}}>すぐ復習</span>
+            </button>
+            <button className="score-btn score-hard" onClick={()=>onScore('hard')}>
+              <span className="emoji">🤔</span><span>むずかしい</span><span style={{fontSize:10,opacity:.7}}>近日中</span>
+            </button>
+            <button className="score-btn score-easy" onClick={()=>onScore('easy')}>
+              <span className="emoji">😄</span><span>できた！</span><span style={{fontSize:10,opacity:.7}}>間隔を延ばす</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LIST
+// ═══════════════════════════════════════════════════════════════════
+function ListScreen({ phrases, cats, progMap }) {
+  const [search, setSearch]     = useState('');
+  const [openCats, setOpenCats] = useState({});
+
+  const q           = search.toLowerCase();
+  const isSearching = q.length > 0;
+
+  return (
+    <div>
+      <input className="input mb-12" placeholder="🔍 英語・日本語で検索"
+        value={search} onChange={e => setSearch(e.target.value)} />
+
+      {isSearching ? (
+        phrases
+          .filter(p => `${p.english} ${p.japanese}`.toLowerCase().includes(q))
+          .map(p => (
+            <PhraseRow key={p.id} phrase={p}
+              cat={cats.find(c=>c.id===p.categoryId)}
+              prog={progMap[p.id]||defProg(p.id)}
+              flat={true} />
+          ))
+      ) : (
+        cats.map(cat => {
+          const catPhrases = phrases.filter(p => p.categoryId === cat.id);
+          const isOpen     = !!openCats[cat.id];
+          return (
+            <div key={cat.id} className="mb-8">
+              <button
+                onClick={() => setOpenCats(prev => ({...prev, [cat.id]: !prev[cat.id]}))}
+                style={{
+                  width:'100%', display:'flex', alignItems:'center',
+                  background:'white', border:'1.5px solid var(--border)',
+                  borderRadius: isOpen ? '12px 12px 0 0' : '12px',
+                  padding:'14px 16px', cursor:'pointer', fontFamily:'inherit'
+                }}>
+                <span style={{flex:1, fontWeight:700, fontSize:15, textAlign:'left'}}>{cat.name}</span>
+                <span style={{fontSize:13, color:'var(--text-sub)', marginRight:8}}>{catPhrases.length}件</span>
+                <span style={{fontSize:12, color:'var(--text-sub)'}}>{isOpen ? '▲' : '▼'}</span>
+              </button>
+              {isOpen && (
+                <div style={{border:'1.5px solid var(--border)', borderTop:'none',
+                  borderRadius:'0 0 12px 12px', overflow:'hidden'}}>
+                  {catPhrases.map(p => (
+                    <PhraseRow key={p.id} phrase={p} cat={cat}
+                      prog={progMap[p.id]||defProg(p.id)}
+                      flat={false} />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function PhraseRow({ phrase, cat, prog, flat }) {
+  const sc = prog.lastScore==='easy'?'#16a34a':prog.lastScore==='hard'?'#d97706':prog.lastScore==='again'?'#dc2626':'#9ca3af';
+  const style = flat
+    ? { borderRadius:'var(--radius)', marginBottom:8, background:'white', boxShadow:'var(--shadow)' }
+    : { borderRadius:0, borderBottom:'1px solid var(--border)', marginBottom:0, background:'white' };
+  return (
+    <div style={{padding:'14px 16px', ...style}}>
+      <div className="flex justify-between items-center mb-4">
+        {flat && <span className="text-xs" style={{color:'#9ca3af'}}>{cat?.name}</span>}
+        {!flat && <span style={{width:1}}></span>}
+        <span className="text-xs" style={{color:sc}}>{prog.totalReviews}回 · {prog.streak}連続</span>
+      </div>
+      <div style={{fontWeight:600, fontSize:15, marginBottom:4}}>{phrase.english}</div>
+      <div className="text-sm text-sub">{phrase.japanese}</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

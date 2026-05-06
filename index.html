@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -180,6 +180,8 @@ const CAT_DATA = [
   { id:'c8',  name:'カフェ・レストランフレーズ', sortOrder:8  },
   { id:'c9',  name:'道に迷った時フレーズ',       sortOrder:9  },
   { id:'c10', name:'軽い雑談フレーズ',           sortOrder:10 },
+  { id:'c11', name:'ベトナム出張｜職場・会議',   sortOrder:11 },
+  { id:'c12', name:'ベトナム出張｜交流・雑談',   sortOrder:12 },
 ];
 
 // ── Phrase data ───────────────────────────────────────────────────
@@ -1874,6 +1876,456 @@ const PHRASE_DATA = [
     ]
   },
 
+  // ── c11 ベトナム出張｜職場・会議 ────────────────────────────────
+
+  // 初対面
+  {
+    id:'p183', english:"Thank you for welcoming me.",
+    japanese:"迎えていただきありがとうございます。", categoryId:'c11',
+    idioms:[{ term:"Thank you for ~ing", note:"「〜してくれてありがとう」の定番表現。"welcoming"（歓迎）や"having me"（招いてくれる）で初対面の感謝を自然に伝えられる。" }],
+    variations:[
+      { label:"より丁寧", text:"Thank you so much for having me here." },
+      { label:"カジュアル", text:"Thanks for having me!" }
+    ]
+  },
+  {
+    id:'p184', english:"I am happy to visit Vietnam.",
+    japanese:"ベトナムに来られて嬉しいです。", categoryId:'c11',
+    idioms:[{ term:"I am happy to ~", note:"「〜できて嬉しい」という気持ちを伝える表現。「It's great to be here.」も同じニュアンスで使える。" }],
+    variations:[
+      { label:"より丁寧", text:"I am honored to have the opportunity to visit Vietnam." },
+      { label:"カジュアル", text:"I'm so excited to be in Vietnam!" }
+    ]
+  },
+  {
+    id:'p185', english:"I look forward to working with you.",
+    japanese:"よろしくお願いします。", categoryId:'c11',
+    idioms:[{ term:"look forward to ~ing", note:"「楽しみにしている」の定番ビジネス表現。to の後は動名詞（working）になることに注意。日本語の「よろしく」に最も近い英語フレーズ。" }],
+    variations:[
+      { label:"より丁寧", text:"I am very much looking forward to collaborating with your team." },
+      { label:"カジュアル", text:"Excited to work with you!" }
+    ]
+  },
+  {
+    id:'p186', english:"Please call me Koki.",
+    japanese:"幸起（コウキ）と呼んでください。", categoryId:'c11',
+    idioms:[{ term:"Please call me ~", note:"「〜と呼んでください」という自己紹介の定番表現。「My name is ~」より親しみやすく、外国人にも発音しやすい呼び名を伝えるときに使う。" }],
+    variations:[
+      { label:"より丁寧", text:"You can call me Koki, if you like." },
+      { label:"別の言い方", text:"My name is Matsumoto, but please call me Koki." }
+    ]
+  },
+
+  // 出張の目的
+  {
+    id:'p187', english:"I am here to support the design work.",
+    japanese:"設計業務のサポートのために来ました。", categoryId:'c11',
+    idioms:[{ term:"I am here to ~", note:"「ここに来た目的」を伝える表現。会議・出張の冒頭で自己説明に最も使いやすいフレーズ。" }],
+    variations:[
+      { label:"より丁寧", text:"I have come to provide support for the design work." },
+      { label:"カジュアル", text:"I'm here to help with the design side." }
+    ]
+  },
+  {
+    id:'p188', english:"Our president and Mr. Matsui have known each other for a long time.",
+    japanese:"弊社の社長と松井さんは長いお付き合いです。", categoryId:'c11',
+    idioms:[{ term:"have known each other for a long time", note:"現在完了の継続用法。「for a long time」で長期の関係を示す。「go back a long way」という慣用表現でも言い換えられる。" }],
+    variations:[
+      { label:"より丁寧", text:"Our company president and Mr. Matsui have maintained a long-standing relationship." },
+      { label:"別の言い方", text:"Our president and Mr. Matsui go back a long way." }
+    ]
+  },
+  {
+    id:'p189', english:"So I came from Japan to help with this project.",
+    japanese:"そのご縁があり、このプロジェクトを手伝うために日本から来ました。", categoryId:'c11',
+    idioms:[{ term:"came from Japan to ~", note:"「〜するために日本から来た」と目的を伝える表現。文頭の「So（そのため）」でp188の文脈につなげると自然な流れになる。" }],
+    variations:[
+      { label:"より丁寧", text:"That is why I have traveled from Japan to assist with this project." },
+      { label:"カジュアル", text:"That's why I'm here from Japan to help out." }
+    ]
+  },
+  {
+    id:'p190', english:"I hope I can be useful to your team.",
+    japanese:"チームのお役に立てると嬉しいです。", categoryId:'c11',
+    idioms:[{ term:"I hope I can be useful", note:"「役に立ちたい」という謙虚な姿勢を示す表現。「useful to ~」で相手チームを主語に持ってくるのがポイント。" }],
+    variations:[
+      { label:"より丁寧", text:"I hope to contribute meaningfully to your team." },
+      { label:"カジュアル", text:"I hope I can help!" }
+    ]
+  },
+
+  // 仕事説明
+  {
+    id:'p191', english:"I work in the design department.",
+    japanese:"設計部に所属しています。", categoryId:'c11',
+    idioms:[{ term:"work in the ~ department", note:"所属部署を伝える定番表現。「I am in the design department.」でも同じ意味。" }],
+    variations:[
+      { label:"より丁寧", text:"I am a member of the design department at our company." },
+      { label:"カジュアル", text:"I'm on the design team." }
+    ]
+  },
+  {
+    id:'p192', english:"I usually work on building design.",
+    japanese:"主に建築設計を担当しています。", categoryId:'c11',
+    idioms:[{ term:"work on ~", note:"「〜に取り組む・担当する」の意。「I specialize in building design.」という言い換えも自然。" }],
+    variations:[
+      { label:"より丁寧", text:"My primary responsibility is building design and structural coordination." },
+      { label:"カジュアル", text:"I mainly do building design." }
+    ]
+  },
+  {
+    id:'p193', english:"I studied architecture at university and graduate school.",
+    japanese:"大学・大学院で建築を学びました。", categoryId:'c11',
+    idioms:[{ term:"studied ~ at university and graduate school", note:"「studied」は過去形。大学院（graduate school）まで学んだことを伝えると、専門性のアピールになる。" }],
+    variations:[
+      { label:"より丁寧", text:"I completed my studies in architecture, including a graduate-level program." },
+      { label:"別の言い方", text:"I have a master's degree in architecture." }
+    ]
+  },
+  {
+    id:'p194', english:"I am not a site manager, but I can support design and technical matters.",
+    japanese:"現場監督ではありませんが、設計・技術面でサポートできます。", categoryId:'c11',
+    idioms:[{ term:"but I can ~", note:"「〜ではないが、〜できる」と役割を正直に伝えつつ貢献意欲を示す表現。「site manager」は現場監督のこと。" }],
+    variations:[
+      { label:"より丁寧", text:"My role is not site management, but I am able to provide support on design and technical aspects." },
+      { label:"別の言い方", text:"I'm not on the construction side, but I can help with design and technical questions." }
+    ]
+  },
+  {
+    id:'p195', english:"I would like to understand the local situation in Vietnam.",
+    japanese:"ベトナムの現地の状況を理解したいと思っています。", categoryId:'c11',
+    idioms:[{ term:"I would like to understand ~", note:"「理解したい」という積極的な姿勢を示す丁寧な表現。「local situation」は現地事情を指す。" }],
+    variations:[
+      { label:"より丁寧", text:"I am eager to gain a deeper understanding of the local conditions in Vietnam." },
+      { label:"カジュアル", text:"I want to learn how things work here in Vietnam." }
+    ]
+  },
+
+  // ベトナムの人に質問
+  {
+    id:'p196', english:"Could you tell me about this project?",
+    japanese:"このプロジェクトについて教えていただけますか？", categoryId:'c11',
+    idioms:[{ term:"Could you tell me about ~?", note:"「Could you」で丁寧な依頼表現に。「tell me about ~」で対象について広く話してもらうよう促す。" }],
+    variations:[
+      { label:"より丁寧", text:"Would it be possible for you to give me an overview of this project?" },
+      { label:"カジュアル", text:"Can you tell me about the project?" }
+    ]
+  },
+  {
+    id:'p197', english:"What is the most important point for this project?",
+    japanese:"このプロジェクトで最も重要なポイントは何ですか？", categoryId:'c11',
+    idioms:[{ term:"the most important point", note:"「key priority」「top priority」でも言い換えられる。重要事項を絞り込む質問として有効。" }],
+    variations:[
+      { label:"より丁寧", text:"What would you say is the top priority for this project?" },
+      { label:"別の言い方", text:"What should I focus on most for this project?" }
+    ]
+  },
+  {
+    id:'p198', english:"Are there any local rules I should know?",
+    japanese:"知っておくべき現地のルールはありますか？", categoryId:'c11',
+    idioms:[{ term:"local rules I should know", note:"「local regulations」「local practices」でも言い換え可。文化・慣習のルールにも使える表現。" }],
+    variations:[
+      { label:"より丁寧", text:"Are there any local regulations or customs I should be aware of?" },
+      { label:"カジュアル", text:"Is there anything local I should know?" }
+    ]
+  },
+  {
+    id:'p199', english:"Who should I contact about design questions?",
+    japanese:"設計に関する質問は誰に相談すればいいですか？", categoryId:'c11',
+    idioms:[{ term:"Who should I contact about ~?", note:"担当窓口を確認する定番ビジネス表現。「Who is the right person for ~?」でも同様。" }],
+    variations:[
+      { label:"より丁寧", text:"Who is the appropriate person to speak with regarding design-related questions?" },
+      { label:"別の言い方", text:"Who handles design questions here?" }
+    ]
+  },
+  {
+    id:'p200', english:"Could you show me the site later?",
+    japanese:"後で現場を見せていただけますか？", categoryId:'c11',
+    idioms:[{ term:"show me the site", note:"「site」は建設・工事現場のこと。「Could you take me to the site?」でも同じ意味。" }],
+    variations:[
+      { label:"より丁寧", text:"Would it be possible to visit the site at a convenient time?" },
+      { label:"カジュアル", text:"Can we go see the site later?" }
+    ]
+  },
+
+  // 会議
+  {
+    id:'p201', english:"That sounds good.",
+    japanese:"いいですね。/ 了解です。", categoryId:'c11',
+    idioms:[{ term:"That sounds good", note:"同意・賛成を示す定番表現。「Sounds great!」「That works for me.」も同様。ビジネスでよく使われる。" }],
+    variations:[
+      { label:"より丁寧", text:"That sounds like a good approach. I agree." },
+      { label:"カジュアル", text:"Sounds great!" }
+    ]
+  },
+  {
+    id:'p202', english:"I agree.",
+    japanese:"同意します。/ そうですね。", categoryId:'c11',
+    idioms:[{ term:"I agree", note:"「I think so too.」「I'm on the same page.」でも言い換えられる。単純な同意に使う最短表現。" }],
+    variations:[
+      { label:"より丁寧", text:"I completely agree with your point." },
+      { label:"別の言い方", text:"I think that's right." }
+    ]
+  },
+  {
+    id:'p203', english:"I will check it and tell you later.",
+    japanese:"確認して後でお伝えします。", categoryId:'c11',
+    idioms:[{ term:"I will check it and tell you later", note:"「I will get back to you.」でも同様の意味。「後で回答する」という定番ビジネス表現。" }],
+    variations:[
+      { label:"より丁寧", text:"I will look into that and follow up with you shortly." },
+      { label:"カジュアル", text:"Let me check and get back to you." }
+    ]
+  },
+  {
+    id:'p204', english:"I need to discuss this with my team in Japan.",
+    japanese:"日本のチームと相談する必要があります。", categoryId:'c11',
+    idioms:[{ term:"I need to discuss this with ~", note:"「一人では決められない」ことを丁寧に伝える表現。「consult with」と言い換えても可。" }],
+    variations:[
+      { label:"より丁寧", text:"I would need to consult with my colleagues back in Japan before making a decision." },
+      { label:"別の言い方", text:"Let me check with my team in Japan on this." }
+    ]
+  },
+
+  // ── c12 ベトナム出張｜交流・雑談 ────────────────────────────────
+
+  // 静岡
+  {
+    id:'p205', english:"I am from Shizuoka, near Mount Fuji.",
+    japanese:"富士山の近く、静岡出身です。", categoryId:'c12',
+    idioms:[{ term:"I am from ~", note:"出身地を伝える最もシンプルな表現。「near Mount Fuji」を加えると外国人にもすぐイメージしてもらえる。" }],
+    variations:[
+      { label:"より丁寧", text:"I come from Shizuoka, which is located near Mount Fuji." },
+      { label:"カジュアル", text:"I'm from Shizuoka — it's near Mount Fuji!" }
+    ]
+  },
+  {
+    id:'p206', english:"Shizuoka is famous for green tea.",
+    japanese:"静岡はお茶で有名です。", categoryId:'c12',
+    idioms:[{ term:"~ is famous for ~", note:"「〜は〜で有名」という表現の定番。「known for」でも同様の意味。" }],
+    variations:[
+      { label:"より丁寧", text:"Shizuoka is well known for producing some of Japan's finest green tea." },
+      { label:"別の言い方", text:"We grow a lot of green tea in Shizuoka." }
+    ]
+  },
+  {
+    id:'p207', english:"We also have good oranges and tuna.",
+    japanese:"みかんとマグロも美味しいですよ。", categoryId:'c12',
+    idioms:[{ term:"We also have ~", note:"「also」で追加情報を自然につなげる表現。「We are also known for ~」とも言える。" }],
+    variations:[
+      { label:"より丁寧", text:"Shizuoka is also renowned for its oranges and fresh tuna." },
+      { label:"カジュアル", text:"We've got great oranges and tuna too!" }
+    ]
+  },
+  {
+    id:'p208', english:"On a clear day, we can see Mount Fuji.",
+    japanese:"晴れた日には富士山が見えます。", categoryId:'c12',
+    idioms:[{ term:"On a clear day", note:"「晴れた日には」という条件を表す表現。「When the weather is clear」とも言い換えられる。" }],
+    variations:[
+      { label:"より丁寧", text:"On a clear day, you can see Mount Fuji beautifully from many places in Shizuoka." },
+      { label:"カジュアル", text:"You can see Mount Fuji when it's clear!" }
+    ]
+  },
+  {
+    id:'p209', english:"If you visit Japan, I recommend Shizuoka.",
+    japanese:"日本に来る機会があれば、静岡をおすすめします。", categoryId:'c12',
+    idioms:[{ term:"I recommend ~", note:"「If you visit Japan」で仮定の条件を立てた上でおすすめする表現。「You should visit ~」も使える。" }],
+    variations:[
+      { label:"より丁寧", text:"Should you ever have the chance to visit Japan, I would highly recommend Shizuoka." },
+      { label:"カジュアル", text:"If you come to Japan, definitely check out Shizuoka!" }
+    ]
+  },
+
+  // 趣味
+  {
+    id:'p210', english:"I like anime from my childhood, like Naruto and One Piece. Recently, I also like Demon Slayer and Jujutsu Kaisen.",
+    japanese:"子どもの頃から好きなアニメはナルトやワンピースです。最近は鬼滅の刃と呪術廻戦も好きです。", categoryId:'c12',
+    idioms:[
+      { term:"from my childhood", note:"「子どもの頃から」という継続感を表す表現。「I grew up watching ~」でも同様に言える。" },
+      { term:"Recently, I also like ~", note:"「最近は〜も好き」と話題を広げる自然な流れ。最新作への言及で共通の話題づくりに役立つ。" }
+    ],
+    variations:[
+      { label:"別の言い方", text:"I grew up watching Naruto and One Piece, and lately I've been into Demon Slayer and Jujutsu Kaisen." },
+      { label:"カジュアル", text:"I love Naruto, One Piece, Demon Slayer, and Jujutsu Kaisen!" }
+    ]
+  },
+  {
+    id:'p211', english:"I heard Demon Slayer is popular in Vietnam.",
+    japanese:"鬼滅の刃はベトナムでも人気だと聞きました。", categoryId:'c12',
+    idioms:[{ term:"I heard ~", note:"「〜と聞いています」という間接情報を伝える表現。相手に話題を振るきっかけとしても使いやすい。" }],
+    variations:[
+      { label:"より丁寧", text:"I understand that Demon Slayer has become quite popular in Vietnam." },
+      { label:"カジュアル", text:"Is Demon Slayer popular here?" }
+    ]
+  },
+  {
+    id:'p212', english:"Do you know Jujutsu Kaisen? It is a dark action anime.",
+    japanese:"呪術廻戦は知っていますか？ダークなアクションアニメです。", categoryId:'c12',
+    idioms:[{ term:"dark action anime", note:"「dark」は暗い・重いテイストを表す形容詞。アニメのジャンルを英語で説明するときによく使われる。" }],
+    variations:[
+      { label:"別の言い方", text:"Have you seen Jujutsu Kaisen? It's an action anime with a dark and intense storyline." },
+      { label:"カジュアル", text:"Do you watch Jujutsu Kaisen? It's really cool!" }
+    ]
+  },
+  {
+    id:'p213', english:"What anime is popular in Vietnam?",
+    japanese:"ベトナムで人気のアニメは何ですか？", categoryId:'c12',
+    idioms:[{ term:"What ~ is popular in ~?", note:"相手の文化に興味を持って質問する表現。「What anime do people watch here?」でも自然。" }],
+    variations:[
+      { label:"より丁寧", text:"Could you tell me which anime series are popular in Vietnam?" },
+      { label:"カジュアル", text:"What anime do you watch in Vietnam?" }
+    ]
+  },
+  {
+    id:'p214', english:"I like staying indoors, but I also like exercise.",
+    japanese:"インドア派ですが、運動も好きです。", categoryId:'c12',
+    idioms:[{ term:"staying indoors", note:"「インドア派」を英語で表す自然な言い方。「I'm a homebody」という表現でも同様のニュアンス。" }],
+    variations:[
+      { label:"別の言い方", text:"I enjoy spending time at home, but I also like to stay active." },
+      { label:"カジュアル", text:"I'm kind of a homebody, but I exercise too!" }
+    ]
+  },
+
+  // 食事や歓迎会にて
+  {
+    id:'p215', english:"What is this dish called?",
+    japanese:"この料理は何という名前ですか？", categoryId:'c12',
+    idioms:[{ term:"What is ~ called?", note:"「〜は何と呼ばれますか？」という名称を尋ねる定番表現。「What do you call this?」でも可。" }],
+    variations:[
+      { label:"より丁寧", text:"Could you tell me the name of this dish?" },
+      { label:"カジュアル", text:"What's this called?" }
+    ]
+  },
+  {
+    id:'p216', english:"Is this a famous Vietnamese food?",
+    japanese:"これは有名なベトナム料理ですか？", categoryId:'c12',
+    idioms:[{ term:"Is this a famous ~?", note:"「有名な料理かどうか」を確認する表現。「Is this a local specialty?」でも同様のニュアンス。" }],
+    variations:[
+      { label:"より丁寧", text:"Is this a traditional or well-known Vietnamese dish?" },
+      { label:"カジュアル", text:"Is this a famous dish here?" }
+    ]
+  },
+  {
+    id:'p217', english:"I would like to try local food.",
+    japanese:"地元の料理を食べてみたいです。", categoryId:'c12',
+    idioms:[{ term:"I would like to try ~", note:"「〜を試してみたい」という丁寧な意欲表現。「I'd love to try ~」でも自然。" }],
+    variations:[
+      { label:"より丁寧", text:"I am very interested in trying authentic local cuisine." },
+      { label:"カジュアル", text:"I really want to try the local food!" }
+    ]
+  },
+  {
+    id:'p218', english:"I cannot eat very spicy food, but I want to try.",
+    japanese:"辛いものは得意ではないですが、挑戦してみたいです。", categoryId:'c12',
+    idioms:[{ term:"I cannot eat very spicy food", note:"「I'm not good with spicy food」「I'm not used to very spicy food」でも言い換えられる。正直に伝えることで相手も配慮してくれる。" }],
+    variations:[
+      { label:"より丁寧", text:"I am not accustomed to very spicy food, but I would love to try if possible." },
+      { label:"カジュアル", text:"Spicy food is tough for me, but I'll give it a try!" }
+    ]
+  },
+  {
+    id:'p219', english:"Thank you for inviting me.",
+    japanese:"お招きいただきありがとうございます。", categoryId:'c12',
+    idioms:[{ term:"Thank you for inviting me", note:"歓迎会・食事会の場で使う感謝の定番表現。「I'm honored to be here.」と続けると好印象。" }],
+    variations:[
+      { label:"より丁寧", text:"Thank you so much for inviting me. I am truly grateful." },
+      { label:"カジュアル", text:"Thanks for having me!" }
+    ]
+  },
+
+  // 雑談
+  {
+    id:'p220', english:"How long have you worked on this project?",
+    japanese:"このプロジェクトにはどのくらい関わっていますか？", categoryId:'c12',
+    idioms:[{ term:"How long have you ~?", note:"現在完了の継続用法で「いつから〜しているか」を尋ねる表現。ビジネス雑談で相手のことを知るのに使いやすい。" }],
+    variations:[
+      { label:"より丁寧", text:"How long have you been involved with this project?" },
+      { label:"カジュアル", text:"When did you start on this project?" }
+    ]
+  },
+  {
+    id:'p221', english:"Have you ever been to Japan?",
+    japanese:"日本に行ったことはありますか？", categoryId:'c12',
+    idioms:[{ term:"Have you ever been to ~?", note:"「〜に行ったことがありますか？」という経験を尋ねる現在完了の定番表現。会話のきっかけとして使いやすい。" }],
+    variations:[
+      { label:"より丁寧", text:"Have you had the opportunity to visit Japan before?" },
+      { label:"カジュアル", text:"Have you been to Japan?" }
+    ]
+  },
+  {
+    id:'p222', english:"What city do you recommend in Vietnam?",
+    japanese:"ベトナムでおすすめの都市はどこですか？", categoryId:'c12',
+    idioms:[{ term:"What ~ do you recommend?", note:"相手の意見を聞くフレーズ。「Where should I go?」でも同様の意味。観光・食事でも使いまわせる。" }],
+    variations:[
+      { label:"より丁寧", text:"If you had to recommend a city to visit in Vietnam, where would you suggest?" },
+      { label:"カジュアル", text:"What's a good city to visit in Vietnam?" }
+    ]
+  },
+  {
+    id:'p223', english:"What food should I try in Vietnam?",
+    japanese:"ベトナムで食べるべきものは何ですか？", categoryId:'c12',
+    idioms:[{ term:"What ~ should I try?", note:"「試すべき〜は？」という定番フレーズ。食・観光の話題で幅広く使える。" }],
+    variations:[
+      { label:"より丁寧", text:"Could you recommend some Vietnamese dishes I should definitely try?" },
+      { label:"カジュアル", text:"What's a must-eat in Vietnam?" }
+    ]
+  },
+  {
+    id:'p224', english:"I want to learn more about Vietnam.",
+    japanese:"ベトナムについてもっと知りたいです。", categoryId:'c12',
+    idioms:[{ term:"I want to learn more about ~", note:"「〜についてもっと知りたい」という率直な興味表現。「I'm really interested in ~」でも言い換えられる。" }],
+    variations:[
+      { label:"より丁寧", text:"I would love to learn more about Vietnam and its culture." },
+      { label:"カジュアル", text:"I'm really curious about Vietnam!" }
+    ]
+  },
+
+  // 別れ際
+  {
+    id:'p225', english:"Thank you for your time today.",
+    japanese:"今日はお時間をいただきありがとうございました。", categoryId:'c12',
+    idioms:[{ term:"Thank you for your time", note:"別れ際の定番ビジネス表現。「I appreciate your time.」でも同様。会議・面談の終わりに必ず使える。" }],
+    variations:[
+      { label:"より丁寧", text:"I truly appreciate you taking the time to meet with me today." },
+      { label:"カジュアル", text:"Thanks for your time today!" }
+    ]
+  },
+  {
+    id:'p226', english:"It was nice talking with you.",
+    japanese:"お話できてよかったです。", categoryId:'c12',
+    idioms:[{ term:"It was nice talking with you", note:"「Nice talking to you」でも同様。「with you」の方がやや丁寧。別れの挨拶として自然に使える。" }],
+    variations:[
+      { label:"より丁寧", text:"It was a real pleasure speaking with you today." },
+      { label:"カジュアル", text:"Great talking to you!" }
+    ]
+  },
+  {
+    id:'p227', english:"I learned a lot today.",
+    japanese:"今日はたくさん学びました。", categoryId:'c12',
+    idioms:[{ term:"I learned a lot", note:"相手への感謝・敬意を示しながら別れを告げる表現。「I gained valuable insight today.」でも同様のニュアンス。" }],
+    variations:[
+      { label:"より丁寧", text:"I gained a great deal of knowledge and insight from our conversation today." },
+      { label:"カジュアル", text:"I learned so much today, thanks!" }
+    ]
+  },
+  {
+    id:'p228', english:"I hope we can work well together.",
+    japanese:"うまく一緒に仕事できることを願っています。", categoryId:'c12',
+    idioms:[{ term:"I hope we can ~", note:"「〜できることを願っています」という希望を伝える表現。「I look forward to working with you.」に近いが、別れ際にも自然に使える。" }],
+    variations:[
+      { label:"より丁寧", text:"I look forward to building a strong working relationship with you." },
+      { label:"カジュアル", text:"Looking forward to working with you!" }
+    ]
+  },
+  {
+    id:'p229', english:"Have a good evening.",
+    japanese:"良い夜を。", categoryId:'c12',
+    idioms:[{ term:"Have a good evening", note:"「Have a nice day」の夜バージョン。「Good evening」は挨拶だが、「Have a good evening」は別れ際に使う。「Have a great night!」でもOK。" }],
+    variations:[
+      { label:"より丁寧", text:"I hope you have a wonderful evening." },
+      { label:"カジュアル", text:"Have a great night!" }
+    ]
+  },
+
 ];
 
 // ── Storage hook ──────────────────────────────────────────────────
@@ -2019,11 +2471,13 @@ function App() {
     { key:'list',  icon:<IconList />,  label:'一覧' },
   ];
   const TITLES = { home:'英会話トレーナー', study:'練習', list:'フレーズ一覧' };
+  const VERSION_LABEL = 'GitHub Pages公開用';
 
   return (
     <div>
       <div className="header">
         <div className="header-title">{TITLES[screen]}</div>
+        <span style={{fontSize:'10px',color:'#92400e',background:'#fef3c7',padding:'2px 8px',borderRadius:'99px',fontWeight:700,whiteSpace:'nowrap'}}>{VERSION_LABEL}</span>
       </div>
       <div className="content">
         {screen==='home'  && <HomeScreen sortedCats={sortedCats} phrases={phrases} totalPhrases={totalPhrases} totalReviews={totalReviews} todayCount={todayCount} onStart={startStudy} />}
@@ -2288,3 +2742,4 @@ ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
+

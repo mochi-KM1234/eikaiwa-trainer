@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>フランス語フレーズトレーナー</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --primary: #2563eb; --primary-light: #eff6ff;
+      --success: #16a34a; --warning: #d97706; --danger: #dc2626;
+      --text: #1f2937; --text-sub: #6b7280; --border: #e5e7eb;
+      --bg: #f3f4f6; --card: #ffffff; --radius: 14px;
+      --shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #root { max-width: 480px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+    .header { background: var(--card); border-bottom: 1px solid var(--border); padding: 10px 14px;
+      display: flex; align-items: center; gap: 8px; position: sticky; top: 0; z-index: 100; }
+    .header-title { font-size: 16px; font-weight: 700; flex: 1; }
+    .lang-link { font-size: 12px; font-weight: 700; color: var(--text); text-decoration: none; white-space: nowrap;
+      border: 1.5px solid var(--border); border-radius: 99px; padding: 3px 10px; }
+    .ver-badge { font-size: 10px; color: #92400e; background: #fef3c7; padding: 2px 8px; border-radius: 99px;
+      font-weight: 700; white-space: nowrap; }
+
+    .nav { background: var(--card); border-top: 1px solid var(--border); display: flex;
+      position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px; z-index: 100; padding-bottom: env(safe-area-inset-bottom); }
+    .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center;
+      padding: 8px 4px 10px; border: none; background: none; font-size: 10px;
+      color: var(--text-sub); cursor: pointer; gap: 3px; font-family: inherit; }
+    .nav-item.active { color: var(--primary); }
+    .nav-item svg { width: 22px; height: 22px; }
+
+    .content { flex: 1; padding: 14px 14px 84px; }
+    .content.study-mode { padding: 10px 12px calc(92px + env(safe-area-inset-bottom)); }
+
+    .btn { border: none; border-radius: 10px; padding: 13px 20px; font-size: 15px;
+      font-weight: 600; cursor: pointer; display: inline-flex; align-items: center;
+      justify-content: center; gap: 6px; transition: opacity .1s, transform .1s;
+      -webkit-user-select: none; user-select: none; font-family: inherit; }
+    .btn:active { opacity: .78; transform: scale(.97); }
+    .btn-primary { background: var(--primary); color: white; width: 100%; }
+    .btn-ghost   { background: white; color: var(--text); border: 1.5px solid var(--border); }
+    .btn-sm { padding: 7px 12px; font-size: 13px; border-radius: 8px; }
+    .w-full { width: 100%; }
+
+    .input { width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+      padding: 11px 14px; font-size: 15px; font-family: inherit; outline: none;
+      background: white; color: var(--text); }
+    .input:focus { border-color: var(--primary); }
+
+    .tag { display: inline-block; background: var(--primary-light); color: var(--primary);
+      padding: 3px 10px; border-radius: 99px; font-size: 13px; font-weight: 600; }
+    .pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 99px;
+      background: #fef3c7; color: #92400e; white-space: nowrap; vertical-align: 2px; }
+
+    /* ホーム */
+    .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+    .stat-card { background: var(--card); border-radius: var(--radius); padding: 12px;
+      text-align: center; box-shadow: var(--shadow); }
+    .stat-num { font-size: 24px; font-weight: 700; color: var(--primary); }
+    .stat-label { font-size: 11px; color: var(--text-sub); margin-top: 2px; }
+    .sub-note { font-size: 11px; color: var(--text-sub); text-align: center; margin: 2px 0 16px; line-height: 1.5; }
+    .section-label { font-size: 12px; font-weight: 700; color: var(--text-sub); letter-spacing: .06em; margin-bottom: 8px; }
+    .cat-btn { display: flex; align-items: center; background: white; border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 12px 14px; font-size: 14px; cursor: pointer; width: 100%;
+      margin-bottom: 7px; font-weight: 500; font-family: inherit; text-align: left; color: var(--text); }
+    .cat-btn:active { border-color: var(--primary); background: var(--primary-light); }
+    .cat-meta { font-size: 12px; color: #9ca3af; white-space: nowrap; margin-left: 8px; }
+
+    /* 練習 */
+    .study-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .prog-wrap { background: var(--border); border-radius: 99px; height: 5px; flex: 1; }
+    .prog-fill { height: 100%; border-radius: 99px; background: var(--primary); transition: width .3s; }
+    .q-card { background: var(--card); border-radius: 14px; padding: 14px 14px 12px;
+      text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,.06); margin-bottom: 8px; }
+    .q-cat { font-size: 11px; color: var(--text-sub); margin-bottom: 6px; }
+    .q-retry { color: var(--danger); font-weight: 700; }
+    .q-jp { font-size: 18px; font-weight: 700; line-height: 1.5; }
+    .hint-area { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
+    .hint-reading { font-size: 14px; color: var(--text-sub); margin-top: 10px; }
+
+    .ans { background: #f8faff; border: 1.5px solid #c7d7f5; border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; }
+    .ans-main { font-size: 18px; font-weight: 700; color: var(--primary); line-height: 1.5; }
+    .ans-reading { font-size: 12px; color: var(--text-sub); margin-top: 1px; }
+    .ans-short { margin-top: 6px; font-size: 15px; font-weight: 700; color: #b45309; line-height: 1.5; }
+
+    .info { border-radius: 12px; padding: 7px 12px 8px; margin-bottom: 8px; border: 1.5px solid; }
+    .info-sim  { background: #f0f9ff; border-color: #bae6fd; }
+    .info-idi  { background: #fdf4ff; border-color: #e9d5ff; }
+    .info-var  { background: #f0fdf4; border-color: #bbf7d0; }
+    .info-ttl { font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 2px; }
+    .info-item { font-size: 13.5px; line-height: 1.5; padding: 4px 0; }
+    .info-item + .info-item { border-top: 1px dashed rgba(0,0,0,.08); }
+    .info-term { font-weight: 700; color: #7c3aed; }
+    .info-label { font-weight: 700; color: #16a34a; margin-right: 6px; font-size: 12px; }
+    .info-sub { font-size: 12px; color: var(--text-sub); }
+
+    .tw { cursor: pointer; border-radius: 4px; }
+    .tw:active { background: #dbeafe; }
+    .say-btn { border: none; background: none; font-size: 15px; padding: 0 2px 0 6px; cursor: pointer;
+      vertical-align: baseline; line-height: 1; }
+
+    /* 下部固定の操作バー */
+    .action-bar { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px; background: rgba(255,255,255,.97); border-top: 1px solid var(--border);
+      padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); display: flex; gap: 6px; z-index: 100; }
+    .ab-back { flex: 0 0 46px; border: 1.5px solid var(--border); background: white; border-radius: 12px;
+      font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; color: var(--text); line-height: 1.2; }
+    .ab-back:disabled { opacity: .3; cursor: default; }
+    .ab-main { flex: 1; min-height: 52px; }
+    .ab-note { position: absolute; left: 0; right: 0; top: -22px; text-align: center; font-size: 11px; }
+    .ab-note span { background: #1f2937; color: white; padding: 2px 10px; border-radius: 99px; }
+    .score-btn { flex: 1; border: none; border-radius: 12px; padding: 7px 4px; font-size: 13px;
+      font-weight: 700; cursor: pointer; display: flex; flex-direction: column; align-items: center;
+      gap: 1px; -webkit-user-select: none; user-select: none; font-family: inherit; }
+    .score-btn:active { opacity: .78; transform: scale(.97); }
+    .score-btn .emoji { font-size: 18px; line-height: 1.2; }
+    .score-btn.sel { box-shadow: inset 0 0 0 3px currentColor; }
+    .score-again { background: #fee2e2; color: var(--danger); }
+    .score-hard  { background: #fef3c7; color: #92400e; }
+    .score-easy  { background: #dcfce7; color: #166534; }
+
+    .session-done { text-align: center; padding: 40px 16px; }
+    .session-done .big-emoji { font-size: 56px; margin-bottom: 12px; }
+    .session-done h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .done-counts { display: flex; justify-content: center; gap: 14px; font-size: 14px; margin: 12px 0 20px; }
+
+    /* 一覧 */
+    .list-tools { display: flex; gap: 8px; margin-bottom: 10px; }
+    .chip { border: 1.5px solid var(--border); background: white; border-radius: 99px; padding: 0 12px;
+      font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; color: var(--text-sub); white-space: nowrap; }
+    .chip.on { border-color: var(--danger); color: var(--danger); background: #fff1f2; }
+    .cat-head { width: 100%; display: flex; align-items: center; background: white; border: 1.5px solid var(--border);
+      padding: 12px 14px; cursor: pointer; font-family: inherit; color: var(--text); }
+    .row { padding: 11px 14px; background: white; cursor: pointer; }
+    .row-meta { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #9ca3af; margin-bottom: 3px; gap: 8px; }
+    .row-en { font-weight: 600; font-size: 15px; line-height: 1.45; }
+    .row-ja { font-size: 13px; color: var(--text-sub); margin-top: 2px; }
+    .row-short { font-size: 13px; color: #b45309; font-weight: 600; margin-top: 4px; }
+    .row-open { margin-top: 8px; }
+    .mb-8 { margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo, useCallback } = React;
+
+// ── 言語設定（英語版／フランス語版で差し替えるのはここだけ） ─────────
+const CONF = {
+  title: 'フランス語トレーナー',
+  target: 'french',                  // フレーズデータの外国語キー
+  langName: 'フランス語',
+  speechLang: 'fr-FR',               // 発音の言語
+  keys: { progress:'fpt_prog_v1', logs:'fpt_logs_v1' },   // 英語版とは別の保存場所
+  hint: 'reading',                   // ヒント：カタカナ読みを出す
+  otherApp: { label:'🇬🇧 英語', href:'index.html' },
+};
+
+// ── Utils ─────────────────────────────────────────────────────────
+const uid = () => Math.random().toString(36).slice(2,10);
+const now = () => new Date().toISOString();
+const daysLater = (d) => new Date(Date.now() + d*86400000).toISOString();
+const SESSION_SIZE = 10;   // 1回の出題数
+const WEAK_TH = 0.3;       // 苦手度がこれ以上なら「苦手」
+
+const STOP = new Set(['the','a','an','to','of','for','and','is','are','i','you','me','my','we',
+  'this','that','it','in','on','with','some','more','could','would','may','like','please','have',
+  'be','do','at','by','from','or','not','so','if','as','up','out','but','can','just','here','there',
+  'get','all','had','has','him','his','her','our','its','was','say','they','she','what','when',
+  'how','who','which','very','also','back','into','than','then','now','only','over','such','down',
+  'no','any','been','come','give','take','where','while','about','should','make','first','well',
+  'same','came','away','these','other','most','did','does','need','want','go','let','put','see',
+  'use','way','one','new','will','still','each','those']);
+
+function guessKw(text) {
+  return [...new Set(text.toLowerCase().replace(/[^a-z0-9\s'-]/g,' ').split(/\s+/)
+    .filter(w => w.length >= 3 && !STOP.has(w)).slice(0,4))];
+}
+function shuffle(a) {
+  const b = [...a];
+  for (let i=b.length-1; i>0; i--) { const j=Math.floor(Math.random()*(i+1)); [b[i],b[j]]=[b[j],b[i]]; }
+  return b;
+}
+// 重み付きランダム抽出（重いほど選ばれやすい・重複なし）
+function weightedPick(items, weightOf, n) {
+  const pool=[...items], out=[];
+  while (pool.length && out.length<n) {
+    const total = pool.reduce((s,x)=>s+weightOf(x),0);
+    let r = Math.random()*total, k = 0;
+    for (; k<pool.length-1; k++) { r -= weightOf(pool[k]); if (r<=0) break; }
+    out.push(pool.splice(k,1)[0]);
+  }
+  return out;
+}
+
+// ── Category data ─────────────────────────────────────────────────
+const CAT_DATA = [
+  { id:'c1', name:"あいさつ・基本", sortOrder:1 },
+  { id:'c2', name:"カフェ・パン屋", sortOrder:2 },
+  { id:'c3', name:"レストラン", sortOrder:3 },
+  { id:'c4', name:"お店・買い物", sortOrder:4 },
+  { id:'c5', name:"メトロ・道・タクシー", sortOrder:5 },
+  { id:'c6', name:"ホテル", sortOrder:6 },
+  { id:'c7', name:"観光・美術館", sortOrder:7 },
+  { id:'c8', name:"困ったとき", sortOrder:8 },
+  { id:'c9', name:"ふたり旅（ハネムーン）", sortOrder:9 },
+];
+
+// ── Phrase data ───────────────────────────────────────────────────
+// 項目：short＝最小限の言い方（⚡最短）、similar＝同じ意味の別フレーズ（類似例）
+const PHRASE_DATA = [
+
+  // ── c1 あいさつ・基本 ────────────────────
+
+  {
+    id:'p001', french:"Bonjour !",
+    reading:"ボンジュール",
+    japanese:"こんにちは！（朝〜夕方）", categoryId:'c1',
+    similar:[
+      { text:"Bonsoir !", reading:"ボンソワール", ja:"（夕方以降）こんばんは！" }
+    ],
+    idioms:[
+      { term:"Bonjour", note:"お店に入るとき・人に話しかけるときは、まず Bonjour。挨拶なしで用件から入ると失礼に受け取られやすい。" }
+    ],
+    variations:[
+      { label:"女性に", text:"Bonjour, madame.", reading:"ボンジュール マダム" },
+      { label:"男性に", text:"Bonjour, monsieur.", reading:"ボンジュール ムッスィユ" }
+    ]
+  },
+  {
+    id:'p002', french:"Merci !",
+    reading:"メルスィ",
+    japanese:"ありがとう！", categoryId:'c1',
+    similar:[
+      { text:"Merci beaucoup !", reading:"メルスィ ボク", ja:"ありがとうございます！" }
+    ],
+    idioms:[
+      { term:"Merci", note:"お礼の基本。店を出るときは Merci, au revoir ! とセットで。" }
+    ],
+    variations:[
+      { label:"ていねいに", text:"Merci beaucoup, c'est gentil.", reading:"メルスィ ボク セ ジャンティ" }
+    ]
+  },
+  {
+    id:'p003', french:"S'il vous plaît.",
+    reading:"スィル ヴ プレ",
+    japanese:"お願いします。", categoryId:'c1',
+    idioms:[
+      { term:"s'il vous plaît", note:"注文・依頼の最後に付ける万能語。「〇〇, s'il vous plaît.」でたいてい通じる。" }
+    ],
+    variations:[
+      { label:"例", text:"Un café, s'il vous plaît.", reading:"アン カフェ スィル ヴ プレ" }
+    ]
+  },
+  {
+    id:'p004', french:"Excusez-moi.",
+    reading:"エクスキュゼ モワ",
+    japanese:"（呼び止めるとき）すみません。", categoryId:'c1',
+    similar:[
+      { text:"Pardon !", reading:"パルドン", ja:"（ぶつかった・通してほしいとき）すみません！" }
+    ],
+    idioms:[
+      { term:"Excusez-moi / Pardon", note:"人に声をかけるときは Excusez-moi、ぶつかったり前を通るときは Pardon が自然。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p005', french:"Merci, au revoir !",
+    reading:"メルスィ オ ルヴォワール",
+    japanese:"（店を出るとき）ありがとう、さようなら！", categoryId:'c1',
+    similar:[
+      { text:"Bonne journée !", reading:"ボンヌ ジュルネ", ja:"よい一日を！" },
+      { text:"Bonne soirée !", reading:"ボンヌ ソワレ", ja:"（夕方以降）よい夜を！" }
+    ],
+    idioms:[
+      { term:"au revoir", note:"別れの挨拶。店員からは Bonne journée !（よい一日を）と返ってくることが多い。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p006', french:"Merci, vous aussi !",
+    reading:"メルスィ ヴ ゾスィ",
+    japanese:"（「よい一日を」と言われて）ありがとう、あなたも！", categoryId:'c1',
+    idioms:[
+      { term:"vous aussi", note:"「あなたも」。ヴ・ゾスィとつなげて読む。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p007', french:"Non, merci.",
+    reading:"ノン メルスィ",
+    japanese:"いえ、結構です。", categoryId:'c1',
+    similar:[
+      { text:"Oui, s'il vous plaît.", reading:"ウィ スィル ヴ プレ", ja:"はい、お願いします。" }
+    ],
+    idioms:[
+      { term:"Non, merci", note:"勧誘や「ほかに何か？」を断るときの定番。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p008', french:"D'accord.",
+    reading:"ダコール",
+    japanese:"わかりました／OKです。", categoryId:'c1',
+    idioms:[
+      { term:"D'accord", note:"了解の返事。OK もそのまま通じる。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p009', french:"Je ne parle pas français.",
+    reading:"ジュ ヌ パルル パ フランセ",
+    japanese:"フランス語は話せません。", categoryId:'c1',
+    idioms:[
+      { term:"ne ~ pas", note:"否定は動詞を ne と pas ではさむ。会話では ne が落ちて Je parle pas français. とも言う。" }
+    ],
+    variations:[
+      { label:"少しだけなら", text:"Je parle un petit peu français.", reading:"ジュ パルル アン プティ プ フランセ" }
+    ]
+  },
+  {
+    id:'p010', french:"Vous parlez anglais ?",
+    reading:"ヴ パルレ アングレ",
+    japanese:"英語は話せますか？", categoryId:'c1',
+    idioms:[
+      { term:"Vous parlez anglais ?", note:"最初の一言をフランス語で言うと、英語で応じてもらいやすい。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p011', french:"Je ne comprends pas.",
+    reading:"ジュ ヌ コンプラン パ",
+    japanese:"（意味が分からないとき）わかりません。", categoryId:'c1',
+    idioms:[
+      { term:"comprendre", note:"理解する。分かったときは Je comprends.（分かります）。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p012', french:"Pouvez-vous répéter, s'il vous plaît ?",
+    reading:"プヴェ ヴ レペテ スィル ヴ プレ",
+    japanese:"もう一度言っていただけますか？", categoryId:'c1',
+    idioms:[
+      { term:"répéter", note:"繰り返す。短く Pardon ?（え？）でも聞き返せる。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p013', french:"Plus lentement, s'il vous plaît.",
+    reading:"プリュ ラントマン スィル ヴ プレ",
+    japanese:"もう少しゆっくりお願いします。", categoryId:'c1',
+    idioms:[
+      { term:"plus lentement", note:"もっとゆっくり。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p014', french:"Désolé.",
+    reading:"デゾレ",
+    japanese:"ごめんなさい。", categoryId:'c1',
+    idioms:[
+      { term:"désolé / désolée", note:"男性は désolé、女性は désolée（発音は同じ）。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p015', french:"Où sont les toilettes ?",
+    reading:"ウ ソン レ トワレット",
+    japanese:"トイレはどこですか？", categoryId:'c1',
+    idioms:[
+      { term:"les toilettes", note:"トイレは複数形で言う。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p016', french:"Je suis japonais.",
+    reading:"ジュ スュイ ジャポネ",
+    japanese:"（国籍を聞かれて）日本人です。", categoryId:'c1',
+    similar:[
+      { text:"On vient du Japon.", reading:"オン ヴィアン デュ ジャポン", ja:"（ふたりで）日本から来ました。" }
+    ],
+    idioms:[
+      { term:"japonais / japonaise", note:"女性は japonaise（ジャポネーズ）。" }
+    ],
+    variations:[]
+  },
+
+  // ── c2 カフェ・パン屋 ────────────────────
+
+  {
+    id:'p017', french:"Un café, s'il vous plaît.",
+    reading:"アン カフェ スィル ヴ プレ",
+    japanese:"コーヒーを1つください。", categoryId:'c2',
+    similar:[
+      { text:"Un café crème, s'il vous plaît.", reading:"アン カフェ クレーム スィル ヴ プレ", ja:"ミルク入りのコーヒーをください。" },
+      { text:"Un café allongé, s'il vous plaît.", reading:"アン カフェ アロンジェ スィル ヴ プレ", ja:"薄めのコーヒーをください。" }
+    ],
+    idioms:[
+      { term:"un café", note:"フランスで単に café と頼むとエスプレッソが出てくる。日本の普通のコーヒーに近いのは café allongé（薄め）、ミルク入りは café crème。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p018', french:"Un croissant, s'il vous plaît.",
+    reading:"アン クロワッサン スィル ヴ プレ",
+    japanese:"クロワッサンを1つください。", categoryId:'c2',
+    similar:[
+      { text:"Deux croissants, s'il vous plaît.", reading:"ドゥ クロワッサン スィル ヴ プレ", ja:"クロワッサンを2つください。" },
+      { text:"Une baguette, s'il vous plaît.", reading:"ユヌ バゲット スィル ヴ プレ", ja:"バゲットを1本ください。" }
+    ],
+    idioms:[
+      { term:"un / une / deux", note:"1つは un（男性名詞）か une（女性名詞）、2つは deux（ドゥ）、3つは trois（トロワ）。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p019', french:"Je voudrais ça, s'il vous plaît.",
+    reading:"ジュ ヴドレ サ スィル ヴ プレ",
+    japanese:"（指さして）これをください。", categoryId:'c2',
+    idioms:[
+      { term:"Je voudrais ~", note:"「〜が欲しいのですが」の丁寧な言い方。指さし＋ça（これ）で何でも頼める。" }
+    ],
+    variations:[
+      { label:"最短", text:"Ça, s'il vous plaît.", reading:"サ スィル ヴ プレ" }
+    ]
+  },
+  {
+    id:'p020', french:"C'est combien ?",
+    reading:"セ コンビヤン",
+    japanese:"（これは）いくらですか？", categoryId:'c2',
+    similar:[
+      { text:"Ça fait combien ?", reading:"サ フェ コンビヤン", ja:"（全部で）いくらですか？" }
+    ],
+    idioms:[
+      { term:"combien", note:"いくら・いくつ。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p021', french:"Sur place, s'il vous plaît.",
+    reading:"スュル プラス スィル ヴ プレ",
+    japanese:"（店内か持ち帰りか聞かれて）店内で。", categoryId:'c2',
+    similar:[
+      { text:"À emporter, s'il vous plaît.", reading:"ア アンポルテ スィル ヴ プレ", ja:"持ち帰りで。" }
+    ],
+    idioms:[
+      { term:"Sur place ou à emporter ?", note:"レジでよく聞かれる質問。店内＝sur place、持ち帰り＝à emporter。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p022', french:"C'est tout, merci.",
+    reading:"セ トゥ メルスィ",
+    japanese:"（「ほかには？」と聞かれて）以上です、ありがとう。", categoryId:'c2',
+    idioms:[
+      { term:"Autre chose ?", note:"店員の「ほかには？」。以上なら C'est tout." }
+    ],
+    variations:[]
+  },
+
+  // ── c3 レストラン ────────────────────
+
+  {
+    id:'p023', french:"Une table pour deux, s'il vous plaît.",
+    reading:"ユヌ ターブル プール ドゥ スィル ヴ プレ",
+    japanese:"（店に入って）2名です。", categoryId:'c3',
+    idioms:[
+      { term:"pour deux", note:"2人用の。人数だけ指で示して Deux, s'il vous plaît. でも通じる。" }
+    ],
+    variations:[
+      { label:"最短", text:"Deux, s'il vous plaît.", reading:"ドゥ スィル ヴ プレ" }
+    ]
+  },
+  {
+    id:'p024', french:"La carte, s'il vous plaît.",
+    reading:"ラ カルト スィル ヴ プレ",
+    japanese:"メニューをください。", categoryId:'c3',
+    idioms:[
+      { term:"la carte / le menu", note:"メニュー表は la carte。le menu は「コース・セットメニュー」の意味になる。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p025', french:"Qu'est-ce que vous me conseillez ?",
+    reading:"ケス ク ヴ ム コンセイエ",
+    japanese:"おすすめは何ですか？", categoryId:'c3',
+    idioms:[
+      { term:"conseiller", note:"すすめる。" }
+    ],
+    variations:[
+      { label:"短く", text:"Vous conseillez quoi ?", reading:"ヴ コンセイエ コワ" }
+    ]
+  },
+  {
+    id:'p026', french:"C'est quoi, le plat du jour ?",
+    reading:"セ コワ ル プラ デュ ジュール",
+    japanese:"本日の料理は何ですか？", categoryId:'c3',
+    idioms:[
+      { term:"le plat du jour", note:"日替わりの一皿。黒板に書かれていることが多い。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p027', french:"Je vais prendre ça.",
+    reading:"ジュ ヴェ プランドル サ",
+    japanese:"（指さして）これにします。", categoryId:'c3',
+    similar:[
+      { text:"Pour moi, ça.", reading:"プール モワ サ", ja:"私はこれで。" }
+    ],
+    idioms:[
+      { term:"prendre", note:"注文するときは prendre（取る）を使う。Je prends ~ でもよい。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p028', french:"Une carafe d'eau, s'il vous plaît.",
+    reading:"ユヌ カラフ ドー スィル ヴ プレ",
+    japanese:"（無料の）水をピッチャーでください。", categoryId:'c3',
+    idioms:[
+      { term:"une carafe d'eau", note:"水道水のピッチャー。食事と一緒なら無料で頼めるのが一般的。de l'eau とだけ言うとミネラルウォーター（有料）が出ることがある。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p029', french:"Un verre de vin rouge, s'il vous plaît.",
+    reading:"アン ヴェール ドゥ ヴァン ルージュ スィル ヴ プレ",
+    japanese:"赤ワインをグラスで1杯ください。", categoryId:'c3',
+    similar:[
+      { text:"Un verre de vin blanc, s'il vous plaît.", reading:"アン ヴェール ドゥ ヴァン ブラン スィル ヴ プレ", ja:"白ワインをグラスで1杯ください。" }
+    ],
+    idioms:[
+      { term:"un verre de ~", note:"グラス1杯の〜。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p030', french:"Tout va bien, merci.",
+    reading:"トゥ ヴァ ビヤン メルスィ",
+    japanese:"（「いかがですか？」と聞かれて）大丈夫です、ありがとう。", categoryId:'c3',
+    idioms:[
+      { term:"Tout se passe bien ?", note:"食事中によく聞かれる「問題ないですか？」。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p031', french:"C'était délicieux !",
+    reading:"セテ デリスィユ",
+    japanese:"とてもおいしかったです！", categoryId:'c3',
+    idioms:[
+      { term:"C'était ~", note:"「〜でした」。食後にひと言添えると喜ばれる。" }
+    ],
+    variations:[
+      { label:"短く", text:"C'était très bon !", reading:"セテ トレ ボン" }
+    ]
+  },
+  {
+    id:'p032', french:"L'addition, s'il vous plaît.",
+    reading:"ラディスィオン スィル ヴ プレ",
+    japanese:"お会計をお願いします。", categoryId:'c3',
+    idioms:[
+      { term:"l'addition", note:"フランスのレストランは、頼むまで会計を持ってこないのが普通（急かさないのが礼儀とされる）。" }
+    ],
+    variations:[]
+  },
+
+  // ── c4 お店・買い物 ────────────────────
+
+  {
+    id:'p033', french:"Je regarde seulement, merci.",
+    reading:"ジュ ルガルド スルマン メルスィ",
+    japanese:"（声をかけられて）見ているだけです、ありがとう。", categoryId:'c4',
+    idioms:[
+      { term:"Je peux vous aider ?", note:"店員の「何かお探しですか？」。この返しで十分。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p034', french:"Vous avez une autre taille ?",
+    reading:"ヴ ザヴェ ユノートル タイユ",
+    japanese:"別のサイズはありますか？", categoryId:'c4',
+    idioms:[
+      { term:"taille", note:"サイズ。" }
+    ],
+    variations:[
+      { label:"大きいサイズ", text:"Vous avez plus grand ?", reading:"ヴ ザヴェ プリュ グラン" },
+      { label:"小さいサイズ", text:"Vous avez plus petit ?", reading:"ヴ ザヴェ プリュ プティ" }
+    ]
+  },
+  {
+    id:'p035', french:"Je peux l'essayer ?",
+    reading:"ジュ プ レセイエ",
+    japanese:"試着してもいいですか？", categoryId:'c4',
+    idioms:[
+      { term:"Je peux ~ ?", note:"「〜してもいいですか？」の万能の形。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p036', french:"Je le prends.",
+    reading:"ジュ ル プラン",
+    japanese:"（買うと決めて）これにします。", categoryId:'c4',
+    idioms:[
+      { term:"le / la", note:"男性名詞なら le、女性名詞なら la。迷ったら Je prends ça. でよい。" }
+    ],
+    variations:[
+      { label:"迷ったら", text:"Je prends ça.", reading:"ジュ プラン サ" }
+    ]
+  },
+  {
+    id:'p037', french:"Je peux payer par carte ?",
+    reading:"ジュ プ ペイエ パール カルト",
+    japanese:"カードで払えますか？", categoryId:'c4',
+    similar:[
+      { text:"En espèces.", reading:"アン ネスペス", ja:"（現金で払うとき）現金で。" }
+    ],
+    idioms:[
+      { term:"par carte", note:"カードで。" }
+    ],
+    variations:[
+      { label:"最短", text:"Par carte ?", reading:"パール カルト" }
+    ]
+  },
+  {
+    id:'p038', french:"Un sac, s'il vous plaît.",
+    reading:"アン サック スィル ヴ プレ",
+    japanese:"袋をください。", categoryId:'c4',
+    idioms:[
+      { term:"un sac", note:"レジ袋は有料か、置いていない店が多い。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p039', french:"C'est pour offrir.",
+    reading:"セ プール オフリール",
+    japanese:"プレゼント用です。", categoryId:'c4',
+    similar:[
+      { text:"Vous pouvez faire un paquet cadeau ?", reading:"ヴ プヴェ フェール アン パケ カドー", ja:"ギフト用に包んでもらえますか？" }
+    ],
+    idioms:[
+      { term:"offrir", note:"贈る。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p040', french:"La détaxe, c'est possible ?",
+    reading:"ラ デタクス セ ポスィーブル",
+    japanese:"免税の手続きはできますか？", categoryId:'c4',
+    idioms:[
+      { term:"la détaxe", note:"免税（タックスリファンド）。パスポートが必要。最低購入額などの条件は店で確認する。" }
+    ],
+    variations:[]
+  },
+
+  // ── c5 メトロ・道・タクシー ────────────────────
+
+  {
+    id:'p041', french:"Où est le métro, s'il vous plaît ?",
+    reading:"ウ エ ル メトロ スィル ヴ プレ",
+    japanese:"地下鉄の駅はどこですか？", categoryId:'c5',
+    idioms:[
+      { term:"Où est ~ ?", note:"「〜はどこ？」。場所の名前を入れ替えれば何でも聞ける。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p042', french:"C'est loin ?",
+    reading:"セ ロワン",
+    japanese:"遠いですか？", categoryId:'c5',
+    similar:[
+      { text:"On peut y aller à pied ?", reading:"オン プ イ アレ ア ピエ", ja:"歩いて行けますか？" }
+    ],
+    idioms:[
+      { term:"loin / près", note:"遠い＝loin、近い＝près（プレ）。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p043', french:"C'est par où ?",
+    reading:"セ パール ウ",
+    japanese:"どっちの方向ですか？", categoryId:'c5',
+    idioms:[
+      { term:"par où", note:"どちらの方へ。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p044', french:"C'est à droite ou à gauche ?",
+    reading:"セ タ ドロワット ウ ア ゴーシュ",
+    japanese:"右ですか、左ですか？", categoryId:'c5',
+    idioms:[
+      { term:"droite / gauche / tout droit", note:"右＝à droite、左＝à gauche、まっすぐ＝tout droit（トゥ ドロワ）。道案内で必ず出る3語。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p045', french:"Je voudrais aller au Louvre.",
+    reading:"ジュ ヴドレ アレ オ ルーヴル",
+    japanese:"ルーヴル美術館に行きたいです。", categoryId:'c5',
+    idioms:[
+      { term:"aller à ~", note:"「〜へ行く」。au / à la と形が変わるが、迷ったら場所の名前＋s'il vous plaît で通じる。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p046', french:"Ce métro va à Châtelet ?",
+    reading:"ス メトロ ヴァ ア シャトレ",
+    japanese:"この地下鉄はシャトレに行きますか？", categoryId:'c5',
+    idioms:[
+      { term:"direction", note:"メトロの乗り場は、行き先ではなく終点の駅名（direction ○○）で案内される。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p047', french:"Je voudrais un passe Navigo Semaine, s'il vous plaît.",
+    reading:"ジュ ヴドレ アン パス ナヴィゴ スメーヌ スィル ヴ プレ",
+    japanese:"（窓口で）ナヴィゴの週間パスをください。", categoryId:'c5',
+    idioms:[
+      { term:"Navigo Semaine", note:"月曜始まりの1週間乗り放題パス。カードの作り方（写真が要るかなど）は事前に確認を。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p048', french:"À cette adresse, s'il vous plaît.",
+    reading:"ア セッタドレス スィル ヴ プレ",
+    japanese:"（タクシーで住所を見せて）この住所までお願いします。", categoryId:'c5',
+    idioms:[
+      { term:"à cette adresse", note:"この住所へ。スマホで住所を見せながら言う。" }
+    ],
+    variations:[]
+  },
+
+  // ── c6 ホテル ────────────────────
+
+  {
+    id:'p049', french:"J'ai une réservation au nom de Matsumoto.",
+    reading:"ジェ ユヌ レゼルヴァスィオン オ ノン ドゥ マツモト",
+    japanese:"松本の名前で予約しています。", categoryId:'c6',
+    idioms:[
+      { term:"au nom de ~", note:"〜の名前で。レストランでも同じ言い方。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p050', french:"À quelle heure est le petit-déjeuner ?",
+    reading:"ア ケルール エ ル プティ デジュネ",
+    japanese:"朝食は何時ですか？", categoryId:'c6',
+    idioms:[
+      { term:"À quelle heure ~ ?", note:"何時に〜？" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p051', french:"Le code wifi, s'il vous plaît ?",
+    reading:"ル コード ウィフィ スィル ヴ プレ",
+    japanese:"Wi-Fiのパスワードを教えてください。", categoryId:'c6',
+    idioms:[
+      { term:"wifi", note:"フランス語では「ウィフィ」と読むことが多い。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p052', french:"Je peux laisser mes bagages ici ?",
+    reading:"ジュ プ レセ メ バガージュ イスィ",
+    japanese:"（チェックアウト後に）荷物を預かってもらえますか？", categoryId:'c6',
+    idioms:[
+      { term:"laisser", note:"置いておく・残す。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p053', french:"Il n'y a pas d'eau chaude.",
+    reading:"イル ニャ パ ドー ショード",
+    japanese:"お湯が出ません。", categoryId:'c6',
+    idioms:[
+      { term:"Il n'y a pas de ~", note:"「〜がない」。トラブルを伝える万能の形。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p054', french:"Merci pour tout !",
+    reading:"メルスィ プール トゥ",
+    japanese:"（チェックアウトで）いろいろありがとうございました！", categoryId:'c6',
+    idioms:[
+      { term:"pour tout", note:"すべてに対して。" }
+    ],
+    variations:[]
+  },
+
+  // ── c7 観光・美術館 ────────────────────
+
+  {
+    id:'p055', french:"Deux billets, s'il vous plaît.",
+    reading:"ドゥ ビエ スィル ヴ プレ",
+    japanese:"チケットを2枚ください。", categoryId:'c7',
+    idioms:[
+      { term:"billet", note:"チケット。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p056', french:"À quelle heure ça ferme ?",
+    reading:"ア ケルール サ フェルム",
+    japanese:"何時に閉まりますか？", categoryId:'c7',
+    similar:[
+      { text:"C'est ouvert aujourd'hui ?", reading:"セ トゥヴェール オジュルデュイ", ja:"今日は開いていますか？" }
+    ],
+    idioms:[
+      { term:"fermer / ouvrir", note:"閉まる＝fermer、開く＝ouvrir。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p057', french:"On peut prendre des photos ?",
+    reading:"オン プ プランドル デ フォト",
+    japanese:"写真を撮ってもいいですか？", categoryId:'c7',
+    idioms:[
+      { term:"sans flash", note:"美術館では「フラッシュなしならOK（sans flash）」と言われることが多い。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p058', french:"Où est l'entrée ?",
+    reading:"ウ エ ラントレ",
+    japanese:"入口はどこですか？", categoryId:'c7',
+    similar:[
+      { text:"Où est la sortie ?", reading:"ウ エ ラ ソルティ", ja:"出口はどこですか？" }
+    ],
+    idioms:[
+      { term:"entrée / sortie", note:"入口＝entrée、出口＝sortie。" }
+    ],
+    variations:[]
+  },
+
+  // ── c8 困ったとき ────────────────────
+
+  {
+    id:'p059', french:"Aidez-moi, s'il vous plaît !",
+    reading:"エデ モワ スィル ヴ プレ",
+    japanese:"助けてください！", categoryId:'c8',
+    similar:[
+      { text:"Au secours !", reading:"オ スクール", ja:"（緊急時に）助けて！" }
+    ],
+    idioms:[
+      { term:"Au secours !", note:"命に関わるような緊急時の「助けて！」。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p060', french:"J'ai perdu mon portefeuille.",
+    reading:"ジェ ペルデュ モン ポルトフイユ",
+    japanese:"財布をなくしました。", categoryId:'c8',
+    similar:[
+      { text:"On m'a volé mon portable.", reading:"オン マ ヴォレ モン ポルターブル", ja:"スマホを盗まれました。" }
+    ],
+    idioms:[
+      { term:"J'ai perdu ~", note:"〜をなくした。パスポートなら J'ai perdu mon passeport." }
+    ],
+    variations:[]
+  },
+  {
+    id:'p061', french:"Où est la pharmacie la plus proche ?",
+    reading:"ウ エ ラ ファルマスィ ラ プリュ プロシュ",
+    japanese:"一番近い薬局はどこですか？", categoryId:'c8',
+    idioms:[
+      { term:"pharmacie", note:"緑の十字の看板が目印。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p062', french:"Je ne me sens pas bien.",
+    reading:"ジュ ヌ ム サン パ ビヤン",
+    japanese:"気分が悪いです。", categoryId:'c8',
+    idioms:[
+      { term:"se sentir", note:"（体調を）感じる。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p063', french:"Je suis perdu.",
+    reading:"ジュ スュイ ペルデュ",
+    japanese:"道に迷いました。", categoryId:'c8',
+    idioms:[
+      { term:"perdu / perdue", note:"女性は perdue（発音は同じ）。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p064', french:"Appelez la police, s'il vous plaît !",
+    reading:"アプレ ラ ポリス スィル ヴ プレ",
+    japanese:"警察を呼んでください！", categoryId:'c8',
+    idioms:[
+      { term:"appeler", note:"呼ぶ・電話する。" }
+    ],
+    variations:[]
+  },
+
+  // ── c9 ふたり旅（ハネムーン） ────────────────────
+
+  {
+    id:'p065', french:"Nous sommes en voyage de noces.",
+    reading:"ヌ ソム ザン ヴォワイヤージュ ドゥ ノス",
+    japanese:"新婚旅行で来ています。", categoryId:'c9',
+    similar:[
+      { text:"C'est notre lune de miel.", reading:"セ ノートル リュヌ ドゥ ミエル", ja:"ハネムーン中なんです。" }
+    ],
+    idioms:[
+      { term:"voyage de noces", note:"新婚旅行。lune de miel（ハネムーン）も同じ意味。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p066', french:"C'est notre première fois à Paris.",
+    reading:"セ ノートル プルミエール フォワ ア パリ",
+    japanese:"パリは初めてです。", categoryId:'c9',
+    idioms:[
+      { term:"première fois", note:"初めて。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p067', french:"Vous pouvez nous prendre en photo, s'il vous plaît ?",
+    reading:"ヴ プヴェ ヌ プランドル アン フォト スィル ヴ プレ",
+    japanese:"私たちの写真を撮っていただけますか？", categoryId:'c9',
+    idioms:[
+      { term:"nous prendre en photo", note:"「私たちを写真に撮る」。1人なら me prendre en photo。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p068', french:"C'est magnifique !",
+    reading:"セ マニフィック",
+    japanese:"すばらしい！／きれい！", categoryId:'c9',
+    similar:[
+      { text:"C'est trop beau !", reading:"セ トロ ボ", ja:"（くだけて）きれいすぎる！" }
+    ],
+    idioms:[
+      { term:"magnifique", note:"景色・建物・料理など何にでも使える感動のひと言。" }
+    ],
+    variations:[]
+  },
+  {
+    id:'p069', french:"Santé !",
+    reading:"サンテ",
+    japanese:"乾杯！", categoryId:'c9',
+    idioms:[
+      { term:"Santé !", note:"乾杯。グラスを合わせるときは相手の目を見るのがマナーとされる。" }
+    ],
+    variations:[]
+  },
+
+];
+
+// 統合で消えたフレーズID → 統合先ID（過去の採点履歴を引き継ぐため）
+const ALIAS = {};
+
+const targetOf = p => p[CONF.target];
+
+// ── 発音（端末の読み上げ機能を使う） ─────────────────────────────
+const synth = window.speechSynthesis;
+if (synth && 'onvoiceschanged' in synth) synth.onvoiceschanged = () => {};
+function pickVoice() {
+  try {
+    const want = CONF.speechLang.toLowerCase();
+    const vs = synth.getVoices();
+    return vs.find(v=>v.lang.toLowerCase().replace('_','-')===want)
+        || vs.find(v=>v.lang.toLowerCase().startsWith(want.slice(0,2))) || null;
+  } catch { return null; }
+}
+function speak(text, rate) {
+  if (!synth || !text) return;
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = CONF.speechLang; u.rate = rate || 0.9;
+  const v = pickVoice(); if (v) u.voice = v;
+  synth.speak(u);
+}
+function cleanWord(w) {
+  return w.replace(/^[^A-Za-z0-9À-ÖØ-öø-ÿœŒ']+|[^A-Za-z0-9À-ÖØ-öø-ÿœŒ']+$/g, '');
+}
+// 単語タップでその単語、🔊で文全体を読み上げる
+function Say({ text }) {
+  if (!text) return null;
+  return (
+    <span>
+      {text.split(/(\s+)/).map((w,i)=> (!w || /^\s+$/.test(w)) ? w :
+        <span key={i} className="tw" onClick={e=>{ e.stopPropagation(); const c=cleanWord(w); if (c) speak(c, 0.8); }}>{w}</span>
+      )}
+      <button className="say-btn" aria-label="全文を読み上げ" onClick={e=>{ e.stopPropagation(); speak(text); }}>🔊</button>
+    </span>
+  );
+}
+
+// ── Storage hook ──────────────────────────────────────────────────
+function useStorage(key, init) {
+  const [state, setState] = useState(() => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; } catch { return init; }
+  });
+  const upd = useCallback((fn) => {
+    setState(prev => {
+      const next = typeof fn === 'function' ? fn(prev) : fn;
+      try { localStorage.setItem(key, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, [key]);
+  return [state, upd];
+}
+
+// ── SM-2（次に出す日を決める） ────────────────────────────────────
+function defProg(phraseId) {
+  return { phraseId, streak:0, intervalDays:0, nextReviewAt:now(), totalReviews:0, lastScore:null, easeFactor:2.5 };
+}
+function nextProg(p, score) {
+  const n = { ...p, totalReviews:p.totalReviews+1, lastScore:score };
+  if (score==='again') {
+    n.streak=0; n.intervalDays=0; n.easeFactor=Math.max(1.3, n.easeFactor-0.2); n.nextReviewAt=daysLater(0);
+  } else if (score==='hard') {
+    n.streak=Math.max(1,n.streak+1); n.intervalDays=Math.max(1,Math.round((n.intervalDays||1)*1.3));
+    n.easeFactor=Math.max(1.5,n.easeFactor-0.05); n.nextReviewAt=daysLater(n.intervalDays);
+  } else {
+    n.streak+=1; n.easeFactor=Math.min(3.0,n.easeFactor+0.08);
+    n.intervalDays=n.intervalDays===0?2:Math.round(n.intervalDays*n.easeFactor);
+    n.nextReviewAt=daysLater(n.intervalDays);
+  }
+  return n;
+}
+
+// ── 苦手度：採点履歴の直近5回を、新しいほど重く数える ─────────────
+// できない=1 / むずかしい=0.5 / できた=0 の重み付き平均（0〜1）
+const SCORE_VAL = { again:1, hard:0.5, easy:0 };
+const RECENT_W  = [1, 0.6, 0.36, 0.22, 0.13];
+function buildStats(logs) {
+  const st = {};
+  for (const l of logs) {                         // logs は新しい順
+    const id = ALIAS[l.phraseId] || l.phraseId;   // 統合で消えたフレーズの履歴は統合先へ
+    const s = st[id] || (st[id] = { again:0, hard:0, easy:0, recent:[] });
+    if (s[l.selfScore] !== undefined) s[l.selfScore]++;
+    if (s.recent.length < RECENT_W.length) s.recent.push(l.selfScore);
+  }
+  for (const id in st) {
+    let num=0, den=0;
+    st[id].recent.forEach((sc,i)=>{ num += RECENT_W[i]*(SCORE_VAL[sc] ?? 0); den += RECENT_W[i]; });
+    st[id].weak = den ? num/den : 0;
+  }
+  return st;
+}
+const weakOf = (stats, id) => stats[id]?.weak || 0;
+
+// ── SVG Icons ─────────────────────────────────────────────────────
+const IconHome = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/><polyline points="9 21 9 12 15 12 15 21"/>
+  </svg>
+);
+const IconList = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/>
+    <circle cx="4" cy="6" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="4" cy="12" r="1" fill="currentColor" stroke="none"/>
+    <circle cx="4" cy="18" r="1" fill="currentColor" stroke="none"/>
+  </svg>
+);
+
+// ═══════════════════════════════════════════════════════════════════
+// APP
+// ═══════════════════════════════════════════════════════════════════
+function App() {
+  const [progMap, updProg] = useStorage(CONF.keys.progress, {});
+  const [logs,    updLogs] = useStorage(CONF.keys.logs,     []);
+  const [screen, setScreen] = useState('home');
+  const [study,  setStudy]  = useState(null);
+
+  const stats      = useMemo(() => buildStats(logs), [logs]);
+  const sortedCats = useMemo(() => [...CAT_DATA].sort((a,b)=>a.sortOrder-b.sortOrder), []);
+  const isSeen     = id => (progMap[id]?.totalReviews||0) > 0 || !!stats[id];
+  const progOf     = id => progMap[id] || defProg(id);
+
+  // 出題：「復習日が来たもの」と「まだ出ていないもの」を半々でランダムに選ぶ
+  function startStudy(mode, catId) {
+    let pool = PHRASE_DATA;
+    if (mode==='category') pool = pool.filter(p=>p.categoryId===catId);
+    let picked;
+    if (mode==='weak') {
+      picked = weightedPick(pool.filter(p=>weakOf(stats,p.id)>=WEAK_TH), p=>weakOf(stats,p.id), SESSION_SIZE);
+      if (!picked.length) { alert('苦手フレーズはまだありません。\n「できない」「むずかしい」を付けたフレーズがここに集まります。'); return; }
+    } else {
+      const t = Date.now(), due=[], unseen=[], later=[];
+      pool.forEach(p => {
+        if (!isSeen(p.id)) unseen.push(p);
+        else if (new Date(progOf(p.id).nextReviewAt).getTime() <= t) due.push(p);
+        else later.push(p);
+      });
+      const d = shuffle(due), u = shuffle(unseen), half = Math.ceil(SESSION_SIZE/2);
+      let a = d.slice(0, half);
+      const b = u.slice(0, SESSION_SIZE - a.length);
+      if (a.length + b.length < SESSION_SIZE) a = d.slice(0, SESSION_SIZE - b.length);
+      picked = [...a, ...b];
+      if (picked.length < SESSION_SIZE) {
+        later.sort((x,y)=>new Date(progOf(x.id).nextReviewAt)-new Date(progOf(y.id).nextReviewAt));
+        picked = [...picked, ...later.slice(0, SESSION_SIZE - picked.length)];
+      }
+      picked = shuffle(picked);
+    }
+    if (!picked.length) { alert('練習できるフレーズがありません。'); return; }
+    setStudy({ ids:picked.map(p=>p.id), index:0, showAnswer:false, showHint:false, results:{} });
+    setScreen('study');
+    window.scrollTo(0,0);
+  }
+
+  function goTo(s, ids, results, index) {
+    setStudy({ ...s, ids, results, index, showAnswer: !!results[index], showHint:false });
+    window.scrollTo(0,0);
+  }
+
+  // 採点。戻って押し直したときは、前の採点を取り消してから付け直す
+  function recordScore(score) {
+    const s = study, pos = s.index, pid = s.ids[pos];
+    const prevRes = s.results[pos];
+    if (prevRes && prevRes.score===score) { goTo(s, s.ids, s.results, pos+1); return; }
+    const ids  = [...s.ids];
+    const base = prevRes ? prevRes.prev : progOf(pid);
+    if (prevRes) {
+      updLogs(prev => prev.filter(l => l.id!==prevRes.logId));
+      if (prevRes.requeued) {
+        const j = ids.lastIndexOf(pid);
+        if (j>pos && !s.results[j]) ids.splice(j,1);
+      }
+    }
+    updProg(prev => ({ ...prev, [pid]: nextProg(base, score) }));
+    const logId = uid();
+    updLogs(prev => [{ id:logId, phraseId:pid, selfScore:score, reviewedAt:now() }, ...prev].slice(0,2000));
+    // 「できない」は同じ回の最後にもう1回出す（1回まで）
+    let requeued = false;
+    const isRetry = ids.indexOf(pid) < pos;
+    if (score==='again' && !isRetry && !ids.slice(pos+1).includes(pid)) { ids.push(pid); requeued = true; }
+    goTo(s, ids, { ...s.results, [pos]: { score, prev:base, logId, requeued } }, pos+1);
+  }
+
+  function goBack() {
+    if (!study || study.index===0) return;
+    goTo(study, study.ids, study.results, study.index-1);
+  }
+
+  const NAV = [
+    { key:'home', icon:<IconHome />, label:'ホーム' },
+    { key:'list', icon:<IconList />, label:'一覧' },
+  ];
+  const TITLES = { home:CONF.title, study:'練習', list:'フレーズ一覧' };
+  const VERSION_LABEL = 'GitHub Pages公開用';
+  const todayCount = logs.filter(l=>new Date(l.reviewedAt).toDateString()===new Date().toDateString()).length;
+  const totalReviews = Object.values(progMap).reduce((s,p)=>s+(p.totalReviews||0),0);
+
+  return (
+    <div>
+      <div className="header">
+        <div className="header-title">{TITLES[screen]}</div>
+        {screen!=='study' && CONF.otherApp && <a className="lang-link" href={CONF.otherApp.href}>{CONF.otherApp.label}</a>}
+        <span className="ver-badge">{VERSION_LABEL}</span>
+      </div>
+      <div className={`content${screen==='study'?' study-mode':''}`}>
+        {screen==='home'  && <HomeScreen sortedCats={sortedCats} stats={stats} totalReviews={totalReviews} todayCount={todayCount} onStart={startStudy} />}
+        {screen==='study' && <StudyScreen state={study} setState={setStudy} cats={CAT_DATA}
+                                onScore={recordScore} onBack={goBack} onExit={()=>setScreen('home')} />}
+        {screen==='list'  && <ListScreen cats={sortedCats} stats={stats} />}
+      </div>
+      {screen!=='study' && (
+        <nav className="nav">
+          {NAV.map(item=>(
+            <button key={item.key} className={`nav-item ${screen===item.key?'active':''}`} onClick={()=>setScreen(item.key)}>
+              {item.icon}{item.label}
+            </button>
+          ))}
+        </nav>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════════════════════════════
+function HomeScreen({ sortedCats, stats, totalReviews, todayCount, onStart }) {
+  const weakCount = PHRASE_DATA.filter(p=>weakOf(stats,p.id)>=WEAK_TH).length;
+  return (
+    <div>
+      <div className="stats-row">
+        <div className="stat-card"><div className="stat-num">{PHRASE_DATA.length}</div><div className="stat-label">フレーズ</div></div>
+        <div className="stat-card"><div className="stat-num">{totalReviews}</div><div className="stat-label">総練習回数</div></div>
+        <div className="stat-card"><div className="stat-num">{todayCount}</div><div className="stat-label">今日の回数</div></div>
+      </div>
+      <button className="btn btn-primary mb-8" onClick={()=>onStart('all')}>▶ 今日の練習（全カテゴリ）</button>
+      <button className="btn btn-ghost w-full" onClick={()=>onStart('weak')}>🔥 苦手フレーズを集中練習（{weakCount}件）</button>
+      <div className="sub-note">出題は「復習の時期が来たもの」と「まだ出ていないもの」を半々でランダム。<br/>苦手＝直近5回の評価を新しいほど重く数えて判定</div>
+      <div className="section-label">カテゴリ別に練習</div>
+      {sortedCats.map(cat=>{
+        const list = PHRASE_DATA.filter(p=>p.categoryId===cat.id);
+        const weak = list.filter(p=>weakOf(stats,p.id)>=WEAK_TH).length;
+        return (
+          <button key={cat.id} className="cat-btn" onClick={()=>onStart('category',cat.id)}>
+            <span style={{flex:1}}>{cat.name}</span>
+            <span className="cat-meta">{list.length}件{weak>0 && <span style={{color:'var(--danger)'}}> · 苦手{weak}</span>} ›</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── 答え・一覧で共通の補足（類似例・解説・別の言い方） ─────────────
+function Extras({ phrase }) {
+  const sims = phrase.similar || [], idioms = phrase.idioms || [], vars = phrase.variations || [];
+  return (
+    <div>
+      {sims.length>0 && (
+        <div className="info info-sim">
+          <div className="info-ttl">🔁 類似例（同じ意味の別フレーズ）</div>
+          {sims.map((s,i)=>(
+            <div key={i} className="info-item">
+              <Say text={s.text} />
+              {s.reading && <div className="info-sub">{s.reading}</div>}
+              {s.ja && <div className="info-sub">{s.ja}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+      {idioms.length>0 && (
+        <div className="info info-idi">
+          <div className="info-ttl">💡 表現の解説</div>
+          {idioms.map((d,i)=>(
+            <div key={i} className="info-item"><span className="info-term">{d.term}</span>　{d.note}</div>
+          ))}
+        </div>
+      )}
+      {vars.length>0 && (
+        <div className="info info-var">
+          <div className="info-ttl">🔄 別の言い方</div>
+          {vars.map((v,i)=>(
+            <div key={i} className="info-item">
+              <span className="info-label">{v.label}</span><Say text={v.text} />
+              {v.reading && <div className="info-sub">{v.reading}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STUDY
+// ═══════════════════════════════════════════════════════════════════
+function StudyScreen({ state, setState, cats, onScore, onBack, onExit }) {
+  if (!state) return null;
+  const { ids, index, showAnswer, showHint, results } = state;
+  const LABEL = { again:'できない', hard:'むずかしい', easy:'できた' };
+
+  if (index>=ids.length) {
+    const cnt = { again:0, hard:0, easy:0 };
+    Object.values(results).forEach(r=>{ cnt[r.score]++; });
+    return (
+      <div className="session-done">
+        <div className="big-emoji">🎉</div>
+        <h2>セッション完了！</h2>
+        <p className="sub-note">{ids.length}問 お疲れ様でした</p>
+        <div className="done-counts"><span>😄 {cnt.easy}</span><span>🤔 {cnt.hard}</span><span>😓 {cnt.again}</span></div>
+        <button className="btn btn-primary mb-8" onClick={onExit}>ホームに戻る</button>
+        <button className="btn btn-ghost w-full" onClick={onBack}>← 最後の問題に戻る</button>
+      </div>
+    );
+  }
+
+  const phrase = PHRASE_DATA.find(p=>p.id===ids[index]);
+  if (!phrase) return null;
+  const cat     = cats.find(c=>c.id===phrase.categoryId);
+  const isRetry = ids.indexOf(phrase.id) < index;
+  const prevRes = results[index];
+
+  return (
+    <div>
+      <div className="study-top">
+        <button className="btn btn-ghost btn-sm" onClick={onExit}>✕ 終了</button>
+        <div className="prog-wrap"><div className="prog-fill" style={{width:`${(index/ids.length)*100}%`}}></div></div>
+        <span style={{fontSize:13,color:'var(--text-sub)'}}>{index+1}/{ids.length}</span>
+      </div>
+
+      <div className="q-card">
+        <div className="q-cat">{cat?.name}{isRetry && <span className="q-retry">　もう一度</span>}</div>
+        <div className="q-jp">{phrase.japanese}</div>
+        {!showAnswer && (!showHint
+          ? <button className="btn btn-ghost btn-sm" style={{marginTop:10}} onClick={()=>setState(s=>({...s,showHint:true}))}>💡 ヒント</button>
+          : (CONF.hint==='reading'
+              ? <div className="hint-reading">{phrase.reading || 'ヒントなし'}</div>
+              : <div className="hint-area">
+                  {guessKw(targetOf(phrase)).map(kw=><span key={kw} className="tag">{kw}</span>)}
+                </div>))}
+      </div>
+
+      {showAnswer && (
+        <div>
+          <div className="ans">
+            <div className="ans-main"><Say text={targetOf(phrase)} /></div>
+            {phrase.reading && <div className="ans-reading">{phrase.reading}</div>}
+            {phrase.short && <div className="ans-short"><span className="pill">⚡最短</span> <Say text={phrase.short} /></div>}
+          </div>
+          <Extras phrase={phrase} />
+        </div>
+      )}
+
+      <div className="action-bar">
+        {prevRes && showAnswer && <div className="ab-note"><span>前回の評価：{LABEL[prevRes.score]}（押し直すと上書き）</span></div>}
+        <button className="ab-back" onClick={onBack} disabled={index===0}>←<br/>戻る</button>
+        {!showAnswer ? (
+          <button className="btn btn-primary ab-main" onClick={()=>setState(s=>({...s,showAnswer:true}))}>答えを見る</button>
+        ) : (
+          <>
+            <button className={`score-btn score-again${prevRes?.score==='again'?' sel':''}`} onClick={()=>onScore('again')}>
+              <span className="emoji">😓</span><span>できない</span>
+            </button>
+            <button className={`score-btn score-hard${prevRes?.score==='hard'?' sel':''}`} onClick={()=>onScore('hard')}>
+              <span className="emoji">🤔</span><span>むずかしい</span>
+            </button>
+            <button className={`score-btn score-easy${prevRes?.score==='easy'?' sel':''}`} onClick={()=>onScore('easy')}>
+              <span className="emoji">😄</span><span>できた！</span>
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// LIST
+// ═══════════════════════════════════════════════════════════════════
+function ListScreen({ cats, stats }) {
+  const [search, setSearch]     = useState('');
+  const [weakOnly, setWeakOnly] = useState(false);
+  const [openCats, setOpenCats] = useState({});
+  const q = search.trim().toLowerCase();
+  const flat = q.length>0 || weakOnly;
+  const match = p => {
+    if (weakOnly && weakOf(stats,p.id) < WEAK_TH) return false;
+    if (!q) return true;
+    const hay = [targetOf(p), p.japanese, p.short, p.reading,
+      ...(p.similar||[]).flatMap(s=>[s.text, s.ja])].filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(q);
+  };
+
+  return (
+    <div>
+      <div className="list-tools">
+        <input className="input" placeholder={`🔍 ${CONF.langName}・日本語で検索`} value={search} onChange={e=>setSearch(e.target.value)} />
+        <button className={`chip${weakOnly?' on':''}`} onClick={()=>setWeakOnly(v=>!v)}>🔥苦手</button>
+      </div>
+      {flat ? (
+        PHRASE_DATA.filter(match).map(p=>(
+          <div key={p.id} className="mb-8" style={{borderRadius:'var(--radius)',overflow:'hidden',boxShadow:'var(--shadow)'}}>
+            <PhraseRow phrase={p} cat={cats.find(c=>c.id===p.categoryId)} stat={stats[p.id]} flat />
+          </div>
+        ))
+      ) : (
+        cats.map(cat=>{
+          const list = PHRASE_DATA.filter(p=>p.categoryId===cat.id);
+          const isOpen = !!openCats[cat.id];
+          return (
+            <div key={cat.id} className="mb-8">
+              <button className="cat-head" style={{borderRadius:isOpen?'12px 12px 0 0':'12px'}}
+                onClick={()=>setOpenCats(prev=>({...prev,[cat.id]:!prev[cat.id]}))}>
+                <span style={{flex:1,fontWeight:700,fontSize:15,textAlign:'left'}}>{cat.name}</span>
+                <span style={{fontSize:13,color:'var(--text-sub)',marginRight:8}}>{list.length}件</span>
+                <span style={{fontSize:12,color:'var(--text-sub)'}}>{isOpen?'▲':'▼'}</span>
+              </button>
+              {isOpen && (
+                <div style={{border:'1.5px solid var(--border)',borderTop:'none',borderRadius:'0 0 12px 12px',overflow:'hidden'}}>
+                  {list.map(p=>(
+                    <div key={p.id} style={{borderBottom:'1px solid var(--border)'}}>
+                      <PhraseRow phrase={p} cat={cat} stat={stats[p.id]} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
+function PhraseRow({ phrase, cat, stat, flat }) {
+  const [open, setOpen] = useState(false);
+  const weak = (stat?.weak||0) >= WEAK_TH;
+  return (
+    <div className="row" onClick={()=>setOpen(o=>!o)}>
+      <div className="row-meta">
+        <span>{flat ? cat?.name : ''}</span>
+        <span>{stat ? `😓${stat.again} 🤔${stat.hard} 😄${stat.easy}` : '未練習'}{weak && <span style={{color:'var(--danger)',fontWeight:700}}> 🔥苦手</span>}</span>
+      </div>
+      <div className="row-en"><Say text={targetOf(phrase)} /></div>
+      {phrase.reading && <div className="info-sub">{phrase.reading}</div>}
+      <div className="row-ja">{phrase.japanese}</div>
+      {phrase.short && <div className="row-short"><span className="pill">⚡最短</span> <Say text={phrase.short} /></div>}
+      {open
+        ? <div className="row-open" onClick={e=>e.stopPropagation()}><Extras phrase={phrase} /></div>
+        : ((phrase.similar||[]).length>0 || (phrase.idioms||[]).length>0) && <div className="info-sub" style={{marginTop:4}}>タップで解説・類似例 ▼</div>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -96,6 +96,8 @@
 
     .info { border-radius: 12px; padding: 7px 12px 8px; margin-bottom: 8px; border: 1.5px solid; }
     .info-sim  { background: #f0f9ff; border-color: #bae6fd; }
+    .info-bd   { background: #fffbeb; border-color: #fde68a; }
+    .info-word { font-weight: 700; color: #b45309; }
     .info-idi  { background: #fdf4ff; border-color: #e9d5ff; }
     .info-var  { background: #f0fdf4; border-color: #bbf7d0; }
     .info-ttl { font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 2px; }
@@ -104,6 +106,14 @@
     .info-term { font-weight: 700; color: #7c3aed; }
     .info-label { font-weight: 700; color: #16a34a; margin-right: 6px; font-size: 12px; }
     .info-sub { font-size: 12px; color: var(--text-sub); }
+
+    /* 単語の真下にカタカナ読みを置く */
+    .ruby-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 3px 9px; }
+    .ruby { display: inline-flex; flex-direction: column; align-items: center; cursor: pointer;
+      border-radius: 4px; padding: 0 1px; }
+    .ruby:active { background: #dbeafe; }
+    .ruby-w { line-height: 1.35; }
+    .ruby-r { font-size: 10.5px; font-weight: 400; color: var(--text-sub); line-height: 1.25; white-space: nowrap; }
 
     .tw { cursor: pointer; border-radius: 4px; }
     .tw:active { background: #dbeafe; }
@@ -163,7 +173,7 @@ const CONF = {
   langName: 'フランス語',
   speechLang: 'fr-FR',               // 発音の言語
   keys: { progress:'fpt_prog_v1', logs:'fpt_logs_v1' },   // 英語版とは別の保存場所
-  hint: 'reading',                   // ヒント：カタカナ読みを出す
+  hint: 'keywords',                  // ヒント：英語版と同じく単語を出す（カタカナ読みは答えに表示）
   otherApp: { label:'🇬🇧 英語', href:'index.html' },
 };
 
@@ -174,7 +184,7 @@ const daysLater = (d) => new Date(Date.now() + d*86400000).toISOString();
 const SESSION_SIZE = 10;   // 1回の出題数
 const WEAK_TH = 0.3;       // 苦手度がこれ以上なら「苦手」
 
-const STOP = new Set(['the','a','an','to','of','for','and','is','are','i','you','me','my','we',
+const STOP_EN = new Set(['the','a','an','to','of','for','and','is','are','i','you','me','my','we',
   'this','that','it','in','on','with','some','more','could','would','may','like','please','have',
   'be','do','at','by','from','or','not','so','if','as','up','out','but','can','just','here','there',
   'get','all','had','has','him','his','her','our','its','was','say','they','she','what','when',
@@ -183,9 +193,30 @@ const STOP = new Set(['the','a','an','to','of','for','and','is','are','i','you',
   'same','came','away','these','other','most','did','does','need','want','go','let','put','see',
   'use','way','one','new','will','still','each','those']);
 
+// フランス語のヒント用：機能語（冠詞・代名詞・前置詞・be/have動詞など）は出さない
+const STOP_FR = new Set(['je','tu','il','elle','on','nous','vous','ils','elles','me','te','se','moi','toi','lui',
+  'leur','leurs','mon','ma','mes','ton','ta','tes','son','sa','ses','notre','nos','votre','vos',
+  'le','la','les','un','une','des','du','de','au','aux','ce','cet','cette','ces','qui','que','quoi',
+  'est','es','suis','sommes','etes','êtes','sont','était','etait','ai','as','avez','avons','ont',
+  'ne','pas','plus','pour','par','sur','dans','avec','en','si','oui','non','ici','là','la','cela','ça','ca',
+  'quel','quelle','quels','quelles','comme','mais','donc','alors','très','tres',
+  'tous','toute','toutes','ou','et','plaît','plait','peu','sans','chose','autre','vais','voilà','voila',
+  'est-ce','qu','vous']);
+const STOP = CONF.target === 'french' ? STOP_FR : STOP_EN;
+
+// 答えのヒントに出す単語（内容語を最大4つ）
 function guessKw(text) {
-  return [...new Set(text.toLowerCase().replace(/[^a-z0-9\s'-]/g,' ').split(/\s+/)
-    .filter(w => w.length >= 3 && !STOP.has(w)).slice(0,4))];
+  const words = text.toLowerCase().split(/\s+/)
+    .map(w => w.replace(/^[^0-9a-zà-öø-ÿ]+|[^0-9a-zà-öø-ÿ'’-]+$/g, '')   // 前後の記号を落とす
+               .replace(/^(l|d|j|n|m|s|c|t|qu)['’]/, ''))                 // フランス語の l' d' s' などを外す
+    .filter(Boolean);
+  const uniq = [...new Set(words.filter(w => w.length >= 3 && !STOP.has(w)))].slice(0,4);
+  if (uniq.length) return uniq;
+  // 内容語が無いときは、短くても機能語でない語（où など）を出す
+  const short = [...new Set(words.filter(w => !STOP.has(w)))].slice(0,2);
+  if (short.length) return short;
+  const first = (text.toLowerCase().match(/[0-9a-zà-öø-ÿ'’-]+/) || [])[0];
+  return first ? [first] : [];
 }
 function shuffle(a) {
   const b = [...a];
@@ -227,11 +258,15 @@ const PHRASE_DATA = [
     id:'p001', french:"Bonjour !",
     reading:"ボンジュール",
     japanese:"こんにちは！（朝〜夕方）", categoryId:'c1',
+    breakdown:[
+      { w:"Bonjour", ja:"こんにちは（bon＝よい ＋ jour＝日）" }
+    ],
     similar:[
       { text:"Bonsoir !", reading:"ボンソワール", ja:"（夕方以降）こんばんは！" }
     ],
     idioms:[
-      { term:"Bonjour", note:"お店に入るとき・人に話しかけるときは、まず Bonjour。挨拶なしで用件から入ると失礼に受け取られやすい。" }
+      { term:"Bonjour", note:"お店に入るとき・人に話しかけるときは、まず Bonjour。挨拶なしで用件から入ると失礼に受け取られやすい。" },
+      { term:"あいさつが入口", note:"フランスでは店に入ったら店員と目を合わせて Bonjour。これを言うかどうかで対応が変わるほど大事。" }
     ],
     variations:[
       { label:"女性に", text:"Bonjour, madame.", reading:"ボンジュール マダム" },
@@ -242,6 +277,9 @@ const PHRASE_DATA = [
     id:'p002', french:"Merci !",
     reading:"メルスィ",
     japanese:"ありがとう！", categoryId:'c1',
+    breakdown:[
+      { w:"Merci", ja:"ありがとう" }
+    ],
     similar:[
       { text:"Merci beaucoup !", reading:"メルスィ ボク", ja:"ありがとうございます！" }
     ],
@@ -256,8 +294,14 @@ const PHRASE_DATA = [
     id:'p003', french:"S'il vous plaît.",
     reading:"スィル ヴ プレ",
     japanese:"お願いします。", categoryId:'c1',
+    breakdown:[
+      { w:"S'il", ja:"もしそれが（si＝もし ＋ il＝それ）" },
+      { w:"vous", ja:"あなたに" },
+      { w:"plaît", ja:"気に入る（plaire＝気に入る）" }
+    ],
     idioms:[
-      { term:"s'il vous plaît", note:"注文・依頼の最後に付ける万能語。「〇〇, s'il vous plaît.」でたいてい通じる。" }
+      { term:"s'il vous plaît", note:"注文・依頼の最後に付ける万能語。「〇〇, s'il vous plaît.」でたいてい通じる。" },
+      { term:"vous と tu", note:"vous は「あなた（丁寧・複数）」、tu は親しい相手。旅行中は基本すべて vous でよい。" }
     ],
     variations:[
       { label:"例", text:"Un café, s'il vous plaît.", reading:"アン カフェ スィル ヴ プレ" }
@@ -265,8 +309,12 @@ const PHRASE_DATA = [
   },
   {
     id:'p004', french:"Excusez-moi.",
-    reading:"エクスキュゼ モワ",
+    reading:"エクスキュゼモワ",
     japanese:"（呼び止めるとき）すみません。", categoryId:'c1',
+    breakdown:[
+      { w:"Excusez", ja:"許してください（excuser の命令形・vous に対して）" },
+      { w:"moi", ja:"私を" }
+    ],
     similar:[
       { text:"Pardon !", reading:"パルドン", ja:"（ぶつかった・通してほしいとき）すみません！" }
     ],
@@ -279,6 +327,10 @@ const PHRASE_DATA = [
     id:'p005', french:"Merci, au revoir !",
     reading:"メルスィ オ ルヴォワール",
     japanese:"（店を出るとき）ありがとう、さようなら！", categoryId:'c1',
+    breakdown:[
+      { w:"Merci", ja:"ありがとう" },
+      { w:"au revoir", ja:"さようなら（au＝〜に ＋ revoir＝再会 →「また会うときまで」）" }
+    ],
     similar:[
       { text:"Bonne journée !", reading:"ボンヌ ジュルネ", ja:"よい一日を！" },
       { text:"Bonne soirée !", reading:"ボンヌ ソワレ", ja:"（夕方以降）よい夜を！" }
@@ -292,6 +344,10 @@ const PHRASE_DATA = [
     id:'p006', french:"Merci, vous aussi !",
     reading:"メルスィ ヴ ゾスィ",
     japanese:"（「よい一日を」と言われて）ありがとう、あなたも！", categoryId:'c1',
+    breakdown:[
+      { w:"vous", ja:"あなた" },
+      { w:"aussi", ja:"も・同じく" }
+    ],
     idioms:[
       { term:"vous aussi", note:"「あなたも」。ヴ・ゾスィとつなげて読む。" }
     ],
@@ -301,6 +357,10 @@ const PHRASE_DATA = [
     id:'p007', french:"Non, merci.",
     reading:"ノン メルスィ",
     japanese:"いえ、結構です。", categoryId:'c1',
+    breakdown:[
+      { w:"Non", ja:"いいえ" },
+      { w:"merci", ja:"ありがとう（断るときも付けると柔らかい）" }
+    ],
     similar:[
       { text:"Oui, s'il vous plaît.", reading:"ウィ スィル ヴ プレ", ja:"はい、お願いします。" }
     ],
@@ -313,6 +373,9 @@ const PHRASE_DATA = [
     id:'p008', french:"D'accord.",
     reading:"ダコール",
     japanese:"わかりました／OKです。", categoryId:'c1',
+    breakdown:[
+      { w:"D'accord", ja:"了解（accord＝合意 →「合意のうえで」）" }
+    ],
     idioms:[
       { term:"D'accord", note:"了解の返事。OK もそのまま通じる。" }
     ],
@@ -322,8 +385,15 @@ const PHRASE_DATA = [
     id:'p009', french:"Je ne parle pas français.",
     reading:"ジュ ヌ パルル パ フランセ",
     japanese:"フランス語は話せません。", categoryId:'c1',
+    breakdown:[
+      { w:"Je", ja:"私は" },
+      { w:"ne ... pas", ja:"〜ない（動詞をはさんで否定にする）" },
+      { w:"parle", ja:"話す（parler の je の形）" },
+      { w:"français", ja:"フランス語" }
+    ],
     idioms:[
-      { term:"ne ~ pas", note:"否定は動詞を ne と pas ではさむ。会話では ne が落ちて Je parle pas français. とも言う。" }
+      { term:"ne ~ pas", note:"否定は動詞を ne と pas ではさむ。会話では ne が落ちて Je parle pas français. とも言う。" },
+      { term:"否定の作り方", note:"ne ＋ 動詞 ＋ pas で「〜しない」。会話では ne が落ちて Je parle pas français. とも聞こえる。" }
     ],
     variations:[
       { label:"少しだけなら", text:"Je parle un petit peu français.", reading:"ジュ パルル アン プティ プ フランセ" }
@@ -333,8 +403,14 @@ const PHRASE_DATA = [
     id:'p010', french:"Vous parlez anglais ?",
     reading:"ヴ パルレ アングレ",
     japanese:"英語は話せますか？", categoryId:'c1',
+    breakdown:[
+      { w:"Vous", ja:"あなたは" },
+      { w:"parlez", ja:"話す（parler の vous の形）" },
+      { w:"anglais", ja:"英語" }
+    ],
     idioms:[
-      { term:"Vous parlez anglais ?", note:"最初の一言をフランス語で言うと、英語で応じてもらいやすい。" }
+      { term:"Vous parlez anglais ?", note:"最初の一言をフランス語で言うと、英語で応じてもらいやすい。" },
+      { term:"疑問文の作り方", note:"語順はそのままで語尾を上げれば疑問文になる。丁寧に言うなら Est-ce que vous parlez anglais ?" }
     ],
     variations:[]
   },
@@ -342,6 +418,10 @@ const PHRASE_DATA = [
     id:'p011', french:"Je ne comprends pas.",
     reading:"ジュ ヌ コンプラン パ",
     japanese:"（意味が分からないとき）わかりません。", categoryId:'c1',
+    breakdown:[
+      { w:"comprends", ja:"理解する（comprendre の je の形）" },
+      { w:"ne ... pas", ja:"〜ない" }
+    ],
     idioms:[
       { term:"comprendre", note:"理解する。分かったときは Je comprends.（分かります）。" }
     ],
@@ -349,8 +429,12 @@ const PHRASE_DATA = [
   },
   {
     id:'p012', french:"Pouvez-vous répéter, s'il vous plaît ?",
-    reading:"プヴェ ヴ レペテ スィル ヴ プレ",
+    reading:"プヴェヴ レペテ スィル ヴ プレ",
     japanese:"もう一度言っていただけますか？", categoryId:'c1',
+    breakdown:[
+      { w:"Pouvez-vous", ja:"〜できますか（pouvoir ＋ vous を入れ替えた丁寧な疑問）" },
+      { w:"répéter", ja:"繰り返す" }
+    ],
     idioms:[
       { term:"répéter", note:"繰り返す。短く Pardon ?（え？）でも聞き返せる。" }
     ],
@@ -360,6 +444,10 @@ const PHRASE_DATA = [
     id:'p013', french:"Plus lentement, s'il vous plaît.",
     reading:"プリュ ラントマン スィル ヴ プレ",
     japanese:"もう少しゆっくりお願いします。", categoryId:'c1',
+    breakdown:[
+      { w:"Plus", ja:"もっと" },
+      { w:"lentement", ja:"ゆっくり（lent＝遅い ＋ -ment）" }
+    ],
     idioms:[
       { term:"plus lentement", note:"もっとゆっくり。" }
     ],
@@ -369,6 +457,9 @@ const PHRASE_DATA = [
     id:'p014', french:"Désolé.",
     reading:"デゾレ",
     japanese:"ごめんなさい。", categoryId:'c1',
+    breakdown:[
+      { w:"Désolé", ja:"ごめんなさい（男性が言う形。女性は désolée・発音は同じ）" }
+    ],
     idioms:[
       { term:"désolé / désolée", note:"男性は désolé、女性は désolée（発音は同じ）。" }
     ],
@@ -378,8 +469,15 @@ const PHRASE_DATA = [
     id:'p015', french:"Où sont les toilettes ?",
     reading:"ウ ソン レ トワレット",
     japanese:"トイレはどこですか？", categoryId:'c1',
+    breakdown:[
+      { w:"Où", ja:"どこ" },
+      { w:"sont", ja:"（複数が）ある・いる（être の複数形）" },
+      { w:"les", ja:"その（複数に付く冠詞）" },
+      { w:"toilettes", ja:"トイレ（いつも複数形）" }
+    ],
     idioms:[
-      { term:"les toilettes", note:"トイレは複数形で言う。" }
+      { term:"les toilettes", note:"トイレは複数形で言う。" },
+      { term:"単数と複数", note:"1つなら Où est 〜 ?、複数なら Où sont 〜 ?。toilettes は常に複数形。" }
     ],
     variations:[]
   },
@@ -387,11 +485,16 @@ const PHRASE_DATA = [
     id:'p016', french:"Je suis japonais.",
     reading:"ジュ スュイ ジャポネ",
     japanese:"（国籍を聞かれて）日本人です。", categoryId:'c1',
+    breakdown:[
+      { w:"Je suis", ja:"私は〜です（être の je の形）" },
+      { w:"japonais", ja:"日本人（男性）。女性は japonaise" }
+    ],
     similar:[
       { text:"On vient du Japon.", reading:"オン ヴィアン デュ ジャポン", ja:"（ふたりで）日本から来ました。" }
     ],
     idioms:[
-      { term:"japonais / japonaise", note:"女性は japonaise（ジャポネーズ）。" }
+      { term:"japonais / japonaise", note:"女性は japonaise（ジャポネーズ）。" },
+      { term:"être（〜です）", note:"je suis／vous êtes／c'est。英語の be にあたる最重要動詞。" }
     ],
     variations:[]
   },
@@ -402,12 +505,17 @@ const PHRASE_DATA = [
     id:'p017', french:"Un café, s'il vous plaît.",
     reading:"アン カフェ スィル ヴ プレ",
     japanese:"コーヒーを1つください。", categoryId:'c2',
+    breakdown:[
+      { w:"Un", ja:"1つの（男性名詞に付く）" },
+      { w:"café", ja:"コーヒー（フランスでは基本エスプレッソ）" }
+    ],
     similar:[
       { text:"Un café crème, s'il vous plaît.", reading:"アン カフェ クレーム スィル ヴ プレ", ja:"ミルク入りのコーヒーをください。" },
       { text:"Un café allongé, s'il vous plaît.", reading:"アン カフェ アロンジェ スィル ヴ プレ", ja:"薄めのコーヒーをください。" }
     ],
     idioms:[
-      { term:"un café", note:"フランスで単に café と頼むとエスプレッソが出てくる。日本の普通のコーヒーに近いのは café allongé（薄め）、ミルク入りは café crème。" }
+      { term:"un café", note:"フランスで単に café と頼むとエスプレッソが出てくる。日本の普通のコーヒーに近いのは café allongé（薄め）、ミルク入りは café crème。" },
+      { term:"名詞の性", note:"フランス語の名詞には男性・女性があり、1つを表す語が un（男性）/ une（女性）と変わる。café は男性名詞。" }
     ],
     variations:[]
   },
@@ -415,6 +523,10 @@ const PHRASE_DATA = [
     id:'p018', french:"Un croissant, s'il vous plaît.",
     reading:"アン クロワッサン スィル ヴ プレ",
     japanese:"クロワッサンを1つください。", categoryId:'c2',
+    breakdown:[
+      { w:"Un", ja:"1つの" },
+      { w:"croissant", ja:"クロワッサン" }
+    ],
     similar:[
       { text:"Deux croissants, s'il vous plaît.", reading:"ドゥ クロワッサン スィル ヴ プレ", ja:"クロワッサンを2つください。" },
       { text:"Une baguette, s'il vous plaît.", reading:"ユヌ バゲット スィル ヴ プレ", ja:"バゲットを1本ください。" }
@@ -428,8 +540,13 @@ const PHRASE_DATA = [
     id:'p019', french:"Je voudrais ça, s'il vous plaît.",
     reading:"ジュ ヴドレ サ スィル ヴ プレ",
     japanese:"（指さして）これをください。", categoryId:'c2',
+    breakdown:[
+      { w:"Je voudrais", ja:"〜が欲しいのですが（vouloir＝欲しい の控えめな形）" },
+      { w:"ça", ja:"これ" }
+    ],
     idioms:[
-      { term:"Je voudrais ~", note:"「〜が欲しいのですが」の丁寧な言い方。指さし＋ça（これ）で何でも頼める。" }
+      { term:"Je voudrais ~", note:"「〜が欲しいのですが」の丁寧な言い方。指さし＋ça（これ）で何でも頼める。" },
+      { term:"注文の万能形", note:"Je voudrais ＋ 名詞／動詞の原形。Je veux（欲しい）は直接的すぎるので避ける。" }
     ],
     variations:[
       { label:"最短", text:"Ça, s'il vous plaît.", reading:"サ スィル ヴ プレ" }
@@ -439,6 +556,10 @@ const PHRASE_DATA = [
     id:'p020', french:"C'est combien ?",
     reading:"セ コンビヤン",
     japanese:"（これは）いくらですか？", categoryId:'c2',
+    breakdown:[
+      { w:"C'est", ja:"これは〜です（ce＝これ ＋ est＝〜です）" },
+      { w:"combien", ja:"いくら・どれだけ" }
+    ],
     similar:[
       { text:"Ça fait combien ?", reading:"サ フェ コンビヤン", ja:"（全部で）いくらですか？" }
     ],
@@ -451,6 +572,9 @@ const PHRASE_DATA = [
     id:'p021', french:"Sur place, s'il vous plaît.",
     reading:"スュル プラス スィル ヴ プレ",
     japanese:"（店内か持ち帰りか聞かれて）店内で。", categoryId:'c2',
+    breakdown:[
+      { w:"Sur place", ja:"その場で（sur＝〜の上に ＋ place＝場所）" }
+    ],
     similar:[
       { text:"À emporter, s'il vous plaît.", reading:"ア アンポルテ スィル ヴ プレ", ja:"持ち帰りで。" }
     ],
@@ -463,6 +587,10 @@ const PHRASE_DATA = [
     id:'p022', french:"C'est tout, merci.",
     reading:"セ トゥ メルスィ",
     japanese:"（「ほかには？」と聞かれて）以上です、ありがとう。", categoryId:'c2',
+    breakdown:[
+      { w:"C'est", ja:"それは〜です" },
+      { w:"tout", ja:"全部 →「以上です」" }
+    ],
     idioms:[
       { term:"Autre chose ?", note:"店員の「ほかには？」。以上なら C'est tout." }
     ],
@@ -475,8 +603,15 @@ const PHRASE_DATA = [
     id:'p023', french:"Une table pour deux, s'il vous plaît.",
     reading:"ユヌ ターブル プール ドゥ スィル ヴ プレ",
     japanese:"（店に入って）2名です。", categoryId:'c3',
+    breakdown:[
+      { w:"Une", ja:"1つの（女性名詞に付く）" },
+      { w:"table", ja:"テーブル（女性名詞）" },
+      { w:"pour", ja:"〜のための" },
+      { w:"deux", ja:"2" }
+    ],
     idioms:[
-      { term:"pour deux", note:"2人用の。人数だけ指で示して Deux, s'il vous plaît. でも通じる。" }
+      { term:"pour deux", note:"2人用の。人数だけ指で示して Deux, s'il vous plaît. でも通じる。" },
+      { term:"数の言い方", note:"un(1)・deux(2)・trois(3)・quatre(4)。人数は指で示しながら言えば確実。" }
     ],
     variations:[
       { label:"最短", text:"Deux, s'il vous plaît.", reading:"ドゥ スィル ヴ プレ" }
@@ -486,6 +621,10 @@ const PHRASE_DATA = [
     id:'p024', french:"La carte, s'il vous plaît.",
     reading:"ラ カルト スィル ヴ プレ",
     japanese:"メニューをください。", categoryId:'c3',
+    breakdown:[
+      { w:"La", ja:"その（女性名詞に付く）" },
+      { w:"carte", ja:"メニュー表" }
+    ],
     idioms:[
       { term:"la carte / le menu", note:"メニュー表は la carte。le menu は「コース・セットメニュー」の意味になる。" }
     ],
@@ -495,6 +634,12 @@ const PHRASE_DATA = [
     id:'p025', french:"Qu'est-ce que vous me conseillez ?",
     reading:"ケス ク ヴ ム コンセイエ",
     japanese:"おすすめは何ですか？", categoryId:'c3',
+    breakdown:[
+      { w:"Qu'est-ce que", ja:"何を〜（疑問の決まり文句。「ケスク」と丸ごと覚える）" },
+      { w:"vous", ja:"あなたは" },
+      { w:"me", ja:"私に" },
+      { w:"conseillez", ja:"すすめる（conseiller）" }
+    ],
     idioms:[
       { term:"conseiller", note:"すすめる。" }
     ],
@@ -506,8 +651,14 @@ const PHRASE_DATA = [
     id:'p026', french:"C'est quoi, le plat du jour ?",
     reading:"セ コワ ル プラ デュ ジュール",
     japanese:"本日の料理は何ですか？", categoryId:'c3',
+    breakdown:[
+      { w:"C'est quoi", ja:"何ですか（くだけた言い方）" },
+      { w:"le plat", ja:"料理・一皿" },
+      { w:"du jour", ja:"その日の（de＋le が縮まって du）" }
+    ],
     idioms:[
-      { term:"le plat du jour", note:"日替わりの一皿。黒板に書かれていることが多い。" }
+      { term:"le plat du jour", note:"日替わりの一皿。黒板に書かれていることが多い。" },
+      { term:"de＋le＝du", note:"de（〜の）＋ le は du に縮まる。de＋les は des。plat du jour＝その日の料理。" }
     ],
     variations:[]
   },
@@ -515,6 +666,11 @@ const PHRASE_DATA = [
     id:'p027', french:"Je vais prendre ça.",
     reading:"ジュ ヴェ プランドル サ",
     japanese:"（指さして）これにします。", categoryId:'c3',
+    breakdown:[
+      { w:"Je vais", ja:"これから〜します（aller ＋ 動詞の原形）" },
+      { w:"prendre", ja:"取る・注文する" },
+      { w:"ça", ja:"これ" }
+    ],
     similar:[
       { text:"Pour moi, ça.", reading:"プール モワ サ", ja:"私はこれで。" }
     ],
@@ -527,8 +683,13 @@ const PHRASE_DATA = [
     id:'p028', french:"Une carafe d'eau, s'il vous plaît.",
     reading:"ユヌ カラフ ドー スィル ヴ プレ",
     japanese:"（無料の）水をピッチャーでください。", categoryId:'c3',
+    breakdown:[
+      { w:"Une carafe", ja:"水差し1つ" },
+      { w:"d'eau", ja:"水の（de＋eau。母音の前で d'）" }
+    ],
     idioms:[
-      { term:"une carafe d'eau", note:"水道水のピッチャー。食事と一緒なら無料で頼めるのが一般的。de l'eau とだけ言うとミネラルウォーター（有料）が出ることがある。" }
+      { term:"une carafe d'eau", note:"水道水のピッチャー。食事と一緒なら無料で頼めるのが一般的。de l'eau とだけ言うとミネラルウォーター（有料）が出ることがある。" },
+      { term:"母音の前で短くなる", note:"de→d'、le/la→l'、je→j' のように、母音で始まる語の前では形が縮む（エリジオン）。" }
     ],
     variations:[]
   },
@@ -536,11 +697,18 @@ const PHRASE_DATA = [
     id:'p029', french:"Un verre de vin rouge, s'il vous plaît.",
     reading:"アン ヴェール ドゥ ヴァン ルージュ スィル ヴ プレ",
     japanese:"赤ワインをグラスで1杯ください。", categoryId:'c3',
+    breakdown:[
+      { w:"Un verre", ja:"グラス1杯" },
+      { w:"de", ja:"〜の" },
+      { w:"vin", ja:"ワイン" },
+      { w:"rouge", ja:"赤い（形容詞は名詞の後ろ）" }
+    ],
     similar:[
       { text:"Un verre de vin blanc, s'il vous plaît.", reading:"アン ヴェール ドゥ ヴァン ブラン スィル ヴ プレ", ja:"白ワインをグラスで1杯ください。" }
     ],
     idioms:[
-      { term:"un verre de ~", note:"グラス1杯の〜。" }
+      { term:"un verre de ~", note:"グラス1杯の〜。" },
+      { term:"形容詞の位置", note:"英語と逆で、色や種類を表す形容詞は名詞の後ろ（vin rouge＝赤ワイン）。" }
     ],
     variations:[]
   },
@@ -548,6 +716,11 @@ const PHRASE_DATA = [
     id:'p030', french:"Tout va bien, merci.",
     reading:"トゥ ヴァ ビヤン メルスィ",
     japanese:"（「いかがですか？」と聞かれて）大丈夫です、ありがとう。", categoryId:'c3',
+    breakdown:[
+      { w:"Tout", ja:"すべて" },
+      { w:"va", ja:"行く・進む（aller）" },
+      { w:"bien", ja:"よく →「順調です」" }
+    ],
     idioms:[
       { term:"Tout se passe bien ?", note:"食事中によく聞かれる「問題ないですか？」。" }
     ],
@@ -557,6 +730,10 @@ const PHRASE_DATA = [
     id:'p031', french:"C'était délicieux !",
     reading:"セテ デリスィユ",
     japanese:"とてもおいしかったです！", categoryId:'c3',
+    breakdown:[
+      { w:"C'était", ja:"〜でした（C'est の過去）" },
+      { w:"délicieux", ja:"とてもおいしい" }
+    ],
     idioms:[
       { term:"C'était ~", note:"「〜でした」。食後にひと言添えると喜ばれる。" }
     ],
@@ -568,6 +745,10 @@ const PHRASE_DATA = [
     id:'p032', french:"L'addition, s'il vous plaît.",
     reading:"ラディスィオン スィル ヴ プレ",
     japanese:"お会計をお願いします。", categoryId:'c3',
+    breakdown:[
+      { w:"L'", ja:"その（la が母音の前で l'）" },
+      { w:"addition", ja:"勘定・会計" }
+    ],
     idioms:[
       { term:"l'addition", note:"フランスのレストランは、頼むまで会計を持ってこないのが普通（急かさないのが礼儀とされる）。" }
     ],
@@ -580,6 +761,10 @@ const PHRASE_DATA = [
     id:'p033', french:"Je regarde seulement, merci.",
     reading:"ジュ ルガルド スルマン メルスィ",
     japanese:"（声をかけられて）見ているだけです、ありがとう。", categoryId:'c4',
+    breakdown:[
+      { w:"Je regarde", ja:"私は見ています（regarder）" },
+      { w:"seulement", ja:"〜だけ" }
+    ],
     idioms:[
       { term:"Je peux vous aider ?", note:"店員の「何かお探しですか？」。この返しで十分。" }
     ],
@@ -587,8 +772,13 @@ const PHRASE_DATA = [
   },
   {
     id:'p034', french:"Vous avez une autre taille ?",
-    reading:"ヴ ザヴェ ユノートル タイユ",
+    reading:"ヴ ザヴェ ユヌ ノートル タイユ",
     japanese:"別のサイズはありますか？", categoryId:'c4',
+    breakdown:[
+      { w:"Vous avez", ja:"ありますか（avoir＝持つ の vous の形）" },
+      { w:"une autre", ja:"別の" },
+      { w:"taille", ja:"サイズ" }
+    ],
     idioms:[
       { term:"taille", note:"サイズ。" }
     ],
@@ -601,8 +791,14 @@ const PHRASE_DATA = [
     id:'p035', french:"Je peux l'essayer ?",
     reading:"ジュ プ レセイエ",
     japanese:"試着してもいいですか？", categoryId:'c4',
+    breakdown:[
+      { w:"Je peux", ja:"〜してもいいですか（pouvoir ＋ 動詞の原形）" },
+      { w:"l'", ja:"それを（le / la が母音の前で l'）" },
+      { w:"essayer", ja:"試す・試着する" }
+    ],
     idioms:[
-      { term:"Je peux ~ ?", note:"「〜してもいいですか？」の万能の形。" }
+      { term:"Je peux ~ ?", note:"「〜してもいいですか？」の万能の形。" },
+      { term:"Je peux ＋ 原形", note:"「〜してもいい？」の万能形。Je peux payer ? / Je peux regarder ? など。" }
     ],
     variations:[]
   },
@@ -610,6 +806,10 @@ const PHRASE_DATA = [
     id:'p036', french:"Je le prends.",
     reading:"ジュ ル プラン",
     japanese:"（買うと決めて）これにします。", categoryId:'c4',
+    breakdown:[
+      { w:"le", ja:"それを（男性名詞のとき。女性名詞なら la）" },
+      { w:"prends", ja:"取る・買う（prendre）" }
+    ],
     idioms:[
       { term:"le / la", note:"男性名詞なら le、女性名詞なら la。迷ったら Je prends ça. でよい。" }
     ],
@@ -621,6 +821,11 @@ const PHRASE_DATA = [
     id:'p037', french:"Je peux payer par carte ?",
     reading:"ジュ プ ペイエ パール カルト",
     japanese:"カードで払えますか？", categoryId:'c4',
+    breakdown:[
+      { w:"Je peux", ja:"〜してもいいですか" },
+      { w:"payer", ja:"支払う" },
+      { w:"par carte", ja:"カードで" }
+    ],
     similar:[
       { text:"En espèces.", reading:"アン ネスペス", ja:"（現金で払うとき）現金で。" }
     ],
@@ -635,6 +840,9 @@ const PHRASE_DATA = [
     id:'p038', french:"Un sac, s'il vous plaît.",
     reading:"アン サック スィル ヴ プレ",
     japanese:"袋をください。", categoryId:'c4',
+    breakdown:[
+      { w:"Un sac", ja:"袋1つ" }
+    ],
     idioms:[
       { term:"un sac", note:"レジ袋は有料か、置いていない店が多い。" }
     ],
@@ -644,6 +852,10 @@ const PHRASE_DATA = [
     id:'p039', french:"C'est pour offrir.",
     reading:"セ プール オフリール",
     japanese:"プレゼント用です。", categoryId:'c4',
+    breakdown:[
+      { w:"pour", ja:"〜のため" },
+      { w:"offrir", ja:"贈る →「贈り物用です」" }
+    ],
     similar:[
       { text:"Vous pouvez faire un paquet cadeau ?", reading:"ヴ プヴェ フェール アン パケ カドー", ja:"ギフト用に包んでもらえますか？" }
     ],
@@ -656,6 +868,10 @@ const PHRASE_DATA = [
     id:'p040', french:"La détaxe, c'est possible ?",
     reading:"ラ デタクス セ ポスィーブル",
     japanese:"免税の手続きはできますか？", categoryId:'c4',
+    breakdown:[
+      { w:"La détaxe", ja:"免税手続き" },
+      { w:"c'est possible", ja:"できますか（可能ですか）" }
+    ],
     idioms:[
       { term:"la détaxe", note:"免税（タックスリファンド）。パスポートが必要。最低購入額などの条件は店で確認する。" }
     ],
@@ -668,6 +884,11 @@ const PHRASE_DATA = [
     id:'p041', french:"Où est le métro, s'il vous plaît ?",
     reading:"ウ エ ル メトロ スィル ヴ プレ",
     japanese:"地下鉄の駅はどこですか？", categoryId:'c5',
+    breakdown:[
+      { w:"Où", ja:"どこ" },
+      { w:"est", ja:"〜です・ある（être の単数形）" },
+      { w:"le métro", ja:"地下鉄" }
+    ],
     idioms:[
       { term:"Où est ~ ?", note:"「〜はどこ？」。場所の名前を入れ替えれば何でも聞ける。" }
     ],
@@ -677,6 +898,10 @@ const PHRASE_DATA = [
     id:'p042', french:"C'est loin ?",
     reading:"セ ロワン",
     japanese:"遠いですか？", categoryId:'c5',
+    breakdown:[
+      { w:"C'est", ja:"それは〜です" },
+      { w:"loin", ja:"遠い（近いは près）" }
+    ],
     similar:[
       { text:"On peut y aller à pied ?", reading:"オン プ イ アレ ア ピエ", ja:"歩いて行けますか？" }
     ],
@@ -689,6 +914,10 @@ const PHRASE_DATA = [
     id:'p043', french:"C'est par où ?",
     reading:"セ パール ウ",
     japanese:"どっちの方向ですか？", categoryId:'c5',
+    breakdown:[
+      { w:"par", ja:"〜を通って" },
+      { w:"où", ja:"どこ →「どっち方向？」" }
+    ],
     idioms:[
       { term:"par où", note:"どちらの方へ。" }
     ],
@@ -696,8 +925,13 @@ const PHRASE_DATA = [
   },
   {
     id:'p044', french:"C'est à droite ou à gauche ?",
-    reading:"セ タ ドロワット ウ ア ゴーシュ",
+    reading:"セ ア ドロワット ウ ア ゴーシュ",
     japanese:"右ですか、左ですか？", categoryId:'c5',
+    breakdown:[
+      { w:"à droite", ja:"右に" },
+      { w:"ou", ja:"または" },
+      { w:"à gauche", ja:"左に" }
+    ],
     idioms:[
       { term:"droite / gauche / tout droit", note:"右＝à droite、左＝à gauche、まっすぐ＝tout droit（トゥ ドロワ）。道案内で必ず出る3語。" }
     ],
@@ -707,8 +941,15 @@ const PHRASE_DATA = [
     id:'p045', french:"Je voudrais aller au Louvre.",
     reading:"ジュ ヴドレ アレ オ ルーヴル",
     japanese:"ルーヴル美術館に行きたいです。", categoryId:'c5',
+    breakdown:[
+      { w:"Je voudrais", ja:"〜したいのですが" },
+      { w:"aller", ja:"行く" },
+      { w:"au", ja:"〜へ（à＋le が縮まって au）" },
+      { w:"Louvre", ja:"ルーヴル" }
+    ],
     idioms:[
-      { term:"aller à ~", note:"「〜へ行く」。au / à la と形が変わるが、迷ったら場所の名前＋s'il vous plaît で通じる。" }
+      { term:"aller à ~", note:"「〜へ行く」。au / à la と形が変わるが、迷ったら場所の名前＋s'il vous plaît で通じる。" },
+      { term:"à＋le＝au", note:"à（〜へ）＋ le は au に縮まる。à la（女性）、aux（複数）。迷ったら地名だけ言っても通じる。" }
     ],
     variations:[]
   },
@@ -716,6 +957,12 @@ const PHRASE_DATA = [
     id:'p046', french:"Ce métro va à Châtelet ?",
     reading:"ス メトロ ヴァ ア シャトレ",
     japanese:"この地下鉄はシャトレに行きますか？", categoryId:'c5',
+    breakdown:[
+      { w:"Ce", ja:"この（男性名詞に付く）" },
+      { w:"métro", ja:"地下鉄" },
+      { w:"va", ja:"行く（aller）" },
+      { w:"à Châtelet", ja:"シャトレへ" }
+    ],
     idioms:[
       { term:"direction", note:"メトロの乗り場は、行き先ではなく終点の駅名（direction ○○）で案内される。" }
     ],
@@ -725,6 +972,10 @@ const PHRASE_DATA = [
     id:'p047', french:"Je voudrais un passe Navigo Semaine, s'il vous plaît.",
     reading:"ジュ ヴドレ アン パス ナヴィゴ スメーヌ スィル ヴ プレ",
     japanese:"（窓口で）ナヴィゴの週間パスをください。", categoryId:'c5',
+    breakdown:[
+      { w:"un passe", ja:"パス1枚" },
+      { w:"Semaine", ja:"週（1週間用）" }
+    ],
     idioms:[
       { term:"Navigo Semaine", note:"月曜始まりの1週間乗り放題パス。カードの作り方（写真が要るかなど）は事前に確認を。" }
     ],
@@ -732,10 +983,16 @@ const PHRASE_DATA = [
   },
   {
     id:'p048', french:"À cette adresse, s'il vous plaît.",
-    reading:"ア セッタドレス スィル ヴ プレ",
+    reading:"ア セット アドレス スィル ヴ プレ",
     japanese:"（タクシーで住所を見せて）この住所までお願いします。", categoryId:'c5',
+    breakdown:[
+      { w:"À", ja:"〜へ" },
+      { w:"cette", ja:"この（女性名詞に付く）" },
+      { w:"adresse", ja:"住所" }
+    ],
     idioms:[
-      { term:"à cette adresse", note:"この住所へ。スマホで住所を見せながら言う。" }
+      { term:"à cette adresse", note:"この住所へ。スマホで住所を見せながら言う。" },
+      { term:"この＝ce / cette", note:"男性名詞には ce、女性名詞には cette。adresse は女性名詞。" }
     ],
     variations:[]
   },
@@ -746,15 +1003,25 @@ const PHRASE_DATA = [
     id:'p049', french:"J'ai une réservation au nom de Matsumoto.",
     reading:"ジェ ユヌ レゼルヴァスィオン オ ノン ドゥ マツモト",
     japanese:"松本の名前で予約しています。", categoryId:'c6',
+    breakdown:[
+      { w:"J'ai", ja:"私は持っています（je＋ai）" },
+      { w:"une réservation", ja:"予約" },
+      { w:"au nom de", ja:"〜の名前で" }
+    ],
     idioms:[
-      { term:"au nom de ~", note:"〜の名前で。レストランでも同じ言い方。" }
+      { term:"au nom de ~", note:"〜の名前で。レストランでも同じ言い方。" },
+      { term:"avoir（持つ）", note:"j'ai／vous avez。Vous avez 〜 ? で「〜はありますか？」も作れる。" }
     ],
     variations:[]
   },
   {
     id:'p050', french:"À quelle heure est le petit-déjeuner ?",
-    reading:"ア ケルール エ ル プティ デジュネ",
+    reading:"ア ケル ウール エ ル プティデジュネ",
     japanese:"朝食は何時ですか？", categoryId:'c6',
+    breakdown:[
+      { w:"À quelle heure", ja:"何時に（quelle＝どの ＋ heure＝時間）" },
+      { w:"le petit-déjeuner", ja:"朝食（petit＝小さい ＋ déjeuner＝昼食）" }
+    ],
     idioms:[
       { term:"À quelle heure ~ ?", note:"何時に〜？" }
     ],
@@ -764,6 +1031,10 @@ const PHRASE_DATA = [
     id:'p051', french:"Le code wifi, s'il vous plaît ?",
     reading:"ル コード ウィフィ スィル ヴ プレ",
     japanese:"Wi-Fiのパスワードを教えてください。", categoryId:'c6',
+    breakdown:[
+      { w:"Le code", ja:"暗証番号・パスワード" },
+      { w:"wifi", ja:"Wi-Fi（「ウィフィ」）" }
+    ],
     idioms:[
       { term:"wifi", note:"フランス語では「ウィフィ」と読むことが多い。" }
     ],
@@ -773,6 +1044,13 @@ const PHRASE_DATA = [
     id:'p052', french:"Je peux laisser mes bagages ici ?",
     reading:"ジュ プ レセ メ バガージュ イスィ",
     japanese:"（チェックアウト後に）荷物を預かってもらえますか？", categoryId:'c6',
+    breakdown:[
+      { w:"Je peux", ja:"〜してもいいですか" },
+      { w:"laisser", ja:"置いていく" },
+      { w:"mes", ja:"私の（複数に付く）" },
+      { w:"bagages", ja:"荷物" },
+      { w:"ici", ja:"ここに" }
+    ],
     idioms:[
       { term:"laisser", note:"置いておく・残す。" }
     ],
@@ -780,10 +1058,16 @@ const PHRASE_DATA = [
   },
   {
     id:'p053', french:"Il n'y a pas d'eau chaude.",
-    reading:"イル ニャ パ ドー ショード",
+    reading:"イル ニ ア パ ドー ショード",
     japanese:"お湯が出ません。", categoryId:'c6',
+    breakdown:[
+      { w:"Il y a", ja:"〜がある（イリヤ）" },
+      { w:"n' ... pas", ja:"〜ない（否定）" },
+      { w:"d'eau chaude", ja:"お湯（eau＝水 ＋ chaude＝熱い）" }
+    ],
     idioms:[
-      { term:"Il n'y a pas de ~", note:"「〜がない」。トラブルを伝える万能の形。" }
+      { term:"Il n'y a pas de ~", note:"「〜がない」。トラブルを伝える万能の形。" },
+      { term:"Il y a（〜がある）", note:"英語の there is。否定は Il n'y a pas de 〜 になり、否定文では un/une/du が de に変わる。" }
     ],
     variations:[]
   },
@@ -791,6 +1075,9 @@ const PHRASE_DATA = [
     id:'p054', french:"Merci pour tout !",
     reading:"メルスィ プール トゥ",
     japanese:"（チェックアウトで）いろいろありがとうございました！", categoryId:'c6',
+    breakdown:[
+      { w:"pour tout", ja:"すべてに対して" }
+    ],
     idioms:[
       { term:"pour tout", note:"すべてに対して。" }
     ],
@@ -803,6 +1090,10 @@ const PHRASE_DATA = [
     id:'p055', french:"Deux billets, s'il vous plaît.",
     reading:"ドゥ ビエ スィル ヴ プレ",
     japanese:"チケットを2枚ください。", categoryId:'c7',
+    breakdown:[
+      { w:"Deux", ja:"2" },
+      { w:"billets", ja:"チケット（複数形）" }
+    ],
     idioms:[
       { term:"billet", note:"チケット。" }
     ],
@@ -810,8 +1101,13 @@ const PHRASE_DATA = [
   },
   {
     id:'p056', french:"À quelle heure ça ferme ?",
-    reading:"ア ケルール サ フェルム",
+    reading:"ア ケル ウール サ フェルム",
     japanese:"何時に閉まりますか？", categoryId:'c7',
+    breakdown:[
+      { w:"À quelle heure", ja:"何時に" },
+      { w:"ça", ja:"それは" },
+      { w:"ferme", ja:"閉まる（fermer）" }
+    ],
     similar:[
       { text:"C'est ouvert aujourd'hui ?", reading:"セ トゥヴェール オジュルデュイ", ja:"今日は開いていますか？" }
     ],
@@ -824,8 +1120,14 @@ const PHRASE_DATA = [
     id:'p057', french:"On peut prendre des photos ?",
     reading:"オン プ プランドル デ フォト",
     japanese:"写真を撮ってもいいですか？", categoryId:'c7',
+    breakdown:[
+      { w:"On", ja:"（会話で）私たち・人は" },
+      { w:"peut", ja:"できる（pouvoir）" },
+      { w:"prendre des photos", ja:"写真を撮る" }
+    ],
     idioms:[
-      { term:"sans flash", note:"美術館では「フラッシュなしならOK（sans flash）」と言われることが多い。" }
+      { term:"sans flash", note:"美術館では「フラッシュなしならOK（sans flash）」と言われることが多い。" },
+      { term:"on の便利さ", note:"会話では nous（私たち）の代わりに on をよく使う。動詞は il/elle と同じ形。" }
     ],
     variations:[]
   },
@@ -833,6 +1135,9 @@ const PHRASE_DATA = [
     id:'p058', french:"Où est l'entrée ?",
     reading:"ウ エ ラントレ",
     japanese:"入口はどこですか？", categoryId:'c7',
+    breakdown:[
+      { w:"l'entrée", ja:"入口（出口は la sortie）" }
+    ],
     similar:[
       { text:"Où est la sortie ?", reading:"ウ エ ラ ソルティ", ja:"出口はどこですか？" }
     ],
@@ -846,13 +1151,18 @@ const PHRASE_DATA = [
 
   {
     id:'p059', french:"Aidez-moi, s'il vous plaît !",
-    reading:"エデ モワ スィル ヴ プレ",
+    reading:"エデモワ スィル ヴ プレ",
     japanese:"助けてください！", categoryId:'c8',
+    breakdown:[
+      { w:"Aidez", ja:"助けて（aider の命令形）" },
+      { w:"moi", ja:"私を" }
+    ],
     similar:[
       { text:"Au secours !", reading:"オ スクール", ja:"（緊急時に）助けて！" }
     ],
     idioms:[
-      { term:"Au secours !", note:"命に関わるような緊急時の「助けて！」。" }
+      { term:"Au secours !", note:"命に関わるような緊急時の「助けて！」。" },
+      { term:"命令の形", note:"vous の活用からそのまま作る（Aidez／Appelez／Excusez）。代名詞は後ろに付けて -moi。" }
     ],
     variations:[]
   },
@@ -860,11 +1170,17 @@ const PHRASE_DATA = [
     id:'p060', french:"J'ai perdu mon portefeuille.",
     reading:"ジェ ペルデュ モン ポルトフイユ",
     japanese:"財布をなくしました。", categoryId:'c8',
+    breakdown:[
+      { w:"J'ai perdu", ja:"なくしました（avoir ＋ 過去分詞＝過去のこと）" },
+      { w:"mon", ja:"私の（男性名詞に付く）" },
+      { w:"portefeuille", ja:"財布" }
+    ],
     similar:[
       { text:"On m'a volé mon portable.", reading:"オン マ ヴォレ モン ポルターブル", ja:"スマホを盗まれました。" }
     ],
     idioms:[
-      { term:"J'ai perdu ~", note:"〜をなくした。パスポートなら J'ai perdu mon passeport." }
+      { term:"J'ai perdu ~", note:"〜をなくした。パスポートなら J'ai perdu mon passeport." },
+      { term:"過去の言い方", note:"avoir ＋ 過去分詞で「〜した」。J'ai perdu（なくした）／J'ai oublié（忘れた）。" }
     ],
     variations:[]
   },
@@ -872,8 +1188,13 @@ const PHRASE_DATA = [
     id:'p061', french:"Où est la pharmacie la plus proche ?",
     reading:"ウ エ ラ ファルマスィ ラ プリュ プロシュ",
     japanese:"一番近い薬局はどこですか？", categoryId:'c8',
+    breakdown:[
+      { w:"la pharmacie", ja:"薬局" },
+      { w:"la plus proche", ja:"一番近い（le/la plus ＋ 形容詞＝最も〜）" }
+    ],
     idioms:[
-      { term:"pharmacie", note:"緑の十字の看板が目印。" }
+      { term:"pharmacie", note:"緑の十字の看板が目印。" },
+      { term:"一番〜", note:"le/la plus ＋ 形容詞。la plus proche＝一番近い。" }
     ],
     variations:[]
   },
@@ -881,6 +1202,10 @@ const PHRASE_DATA = [
     id:'p062', french:"Je ne me sens pas bien.",
     reading:"ジュ ヌ ム サン パ ビヤン",
     japanese:"気分が悪いです。", categoryId:'c8',
+    breakdown:[
+      { w:"me sens", ja:"自分が感じる（se sentir）" },
+      { w:"ne ... pas bien", ja:"よくない" }
+    ],
     idioms:[
       { term:"se sentir", note:"（体調を）感じる。" }
     ],
@@ -890,6 +1215,10 @@ const PHRASE_DATA = [
     id:'p063', french:"Je suis perdu.",
     reading:"ジュ スュイ ペルデュ",
     japanese:"道に迷いました。", categoryId:'c8',
+    breakdown:[
+      { w:"Je suis", ja:"私は〜です" },
+      { w:"perdu", ja:"道に迷った（女性は perdue）" }
+    ],
     idioms:[
       { term:"perdu / perdue", note:"女性は perdue（発音は同じ）。" }
     ],
@@ -899,6 +1228,10 @@ const PHRASE_DATA = [
     id:'p064', french:"Appelez la police, s'il vous plaît !",
     reading:"アプレ ラ ポリス スィル ヴ プレ",
     japanese:"警察を呼んでください！", categoryId:'c8',
+    breakdown:[
+      { w:"Appelez", ja:"呼んでください（appeler の命令形）" },
+      { w:"la police", ja:"警察" }
+    ],
     idioms:[
       { term:"appeler", note:"呼ぶ・電話する。" }
     ],
@@ -911,11 +1244,17 @@ const PHRASE_DATA = [
     id:'p065', french:"Nous sommes en voyage de noces.",
     reading:"ヌ ソム ザン ヴォワイヤージュ ドゥ ノス",
     japanese:"新婚旅行で来ています。", categoryId:'c9',
+    breakdown:[
+      { w:"Nous sommes", ja:"私たちは〜です（être の nous の形）" },
+      { w:"en", ja:"〜中" },
+      { w:"voyage de noces", ja:"新婚旅行（noces＝結婚式）" }
+    ],
     similar:[
       { text:"C'est notre lune de miel.", reading:"セ ノートル リュヌ ドゥ ミエル", ja:"ハネムーン中なんです。" }
     ],
     idioms:[
-      { term:"voyage de noces", note:"新婚旅行。lune de miel（ハネムーン）も同じ意味。" }
+      { term:"voyage de noces", note:"新婚旅行。lune de miel（ハネムーン）も同じ意味。" },
+      { term:"私たち", note:"Nous sommes（丁寧）／On est（くだけた言い方）。どちらも「私たちは〜です」。" }
     ],
     variations:[]
   },
@@ -923,6 +1262,12 @@ const PHRASE_DATA = [
     id:'p066', french:"C'est notre première fois à Paris.",
     reading:"セ ノートル プルミエール フォワ ア パリ",
     japanese:"パリは初めてです。", categoryId:'c9',
+    breakdown:[
+      { w:"notre", ja:"私たちの" },
+      { w:"première", ja:"最初の" },
+      { w:"fois", ja:"回" },
+      { w:"à Paris", ja:"パリで" }
+    ],
     idioms:[
       { term:"première fois", note:"初めて。" }
     ],
@@ -932,6 +1277,11 @@ const PHRASE_DATA = [
     id:'p067', french:"Vous pouvez nous prendre en photo, s'il vous plaît ?",
     reading:"ヴ プヴェ ヌ プランドル アン フォト スィル ヴ プレ",
     japanese:"私たちの写真を撮っていただけますか？", categoryId:'c9',
+    breakdown:[
+      { w:"Vous pouvez", ja:"〜してもらえますか" },
+      { w:"nous", ja:"私たちを" },
+      { w:"prendre en photo", ja:"写真に撮る" }
+    ],
     idioms:[
       { term:"nous prendre en photo", note:"「私たちを写真に撮る」。1人なら me prendre en photo。" }
     ],
@@ -941,6 +1291,9 @@ const PHRASE_DATA = [
     id:'p068', french:"C'est magnifique !",
     reading:"セ マニフィック",
     japanese:"すばらしい！／きれい！", categoryId:'c9',
+    breakdown:[
+      { w:"magnifique", ja:"すばらしい・とてもきれい" }
+    ],
     similar:[
       { text:"C'est trop beau !", reading:"セ トロ ボ", ja:"（くだけて）きれいすぎる！" }
     ],
@@ -953,6 +1306,9 @@ const PHRASE_DATA = [
     id:'p069', french:"Santé !",
     reading:"サンテ",
     japanese:"乾杯！", categoryId:'c9',
+    breakdown:[
+      { w:"Santé", ja:"健康 →「健康を祈って」＝乾杯" }
+    ],
     idioms:[
       { term:"Santé !", note:"乾杯。グラスを合わせるときは相手の目を見るのがマナーとされる。" }
     ],
@@ -988,6 +1344,40 @@ function speak(text, rate) {
 function cleanWord(w) {
   return w.replace(/^[^A-Za-z0-9À-ÖØ-öø-ÿœŒ']+|[^A-Za-z0-9À-ÖØ-öø-ÿœŒ']+$/g, '');
 }
+// 本文とカタカナ読みを単語ごとに1対1で並べる（数が合わないときは null＝従来表示に戻す）
+const PUNCT_ONLY = /^[?!.,;:»«…]+$/;
+function rubyPairs(text, reading) {
+  if (!text || !reading) return null;
+  const ws = [];
+  text.split(/\s+/).filter(Boolean).forEach(w => {
+    if (PUNCT_ONLY.test(w) && ws.length) ws[ws.length-1] += ' ' + w;   // 「 ?」などは前の語に付ける
+    else ws.push(w);
+  });
+  const rs = reading.split(/\s+/).filter(Boolean);
+  return ws.length === rs.length ? ws.map((w,i)=>({ w, r:rs[i] })) : null;
+}
+// 1行ぶんの表示。読みがあれば単語の真下にカタカナを置く
+function Line({ text, reading, cls }) {
+  const pairs = rubyPairs(text, reading);
+  if (!pairs) return (
+    <div>
+      <div className={cls}><Say text={text} /></div>
+      {reading && <div className="info-sub">{reading}</div>}
+    </div>
+  );
+  return (
+    <div className={`ruby-row ${cls||''}`}>
+      {pairs.map((p,i)=>(
+        <span key={i} className="ruby" onClick={e=>{ e.stopPropagation(); const c=cleanWord(p.w); if (c) speak(c, 0.8); }}>
+          <span className="ruby-w">{p.w}</span>
+          <span className="ruby-r">{p.r}</span>
+        </span>
+      ))}
+      <button className="say-btn" aria-label="全文を読み上げ" onClick={e=>{ e.stopPropagation(); speak(text); }}>🔊</button>
+    </div>
+  );
+}
+
 // 単語タップでその単語、🔊で文全体を読み上げる
 function Say({ text }) {
   if (!text) return null;
@@ -1219,15 +1609,23 @@ function HomeScreen({ sortedCats, stats, totalReviews, todayCount, onStart }) {
 // ── 答え・一覧で共通の補足（類似例・解説・別の言い方） ─────────────
 function Extras({ phrase }) {
   const sims = phrase.similar || [], idioms = phrase.idioms || [], vars = phrase.variations || [];
+  const bd = phrase.breakdown || [];
   return (
     <div>
+      {bd.length>0 && (
+        <div className="info info-bd">
+          <div className="info-ttl">🧩 単語の意味</div>
+          {bd.map((b,i)=>(
+            <div key={i} className="info-item"><span className="info-word">{b.w}</span>　{b.ja}</div>
+          ))}
+        </div>
+      )}
       {sims.length>0 && (
         <div className="info info-sim">
           <div className="info-ttl">🔁 類似例（同じ意味の別フレーズ）</div>
           {sims.map((s,i)=>(
             <div key={i} className="info-item">
-              <Say text={s.text} />
-              {s.reading && <div className="info-sub">{s.reading}</div>}
+              <Line text={s.text} reading={s.reading} />
               {s.ja && <div className="info-sub">{s.ja}</div>}
             </div>
           ))}
@@ -1246,8 +1644,9 @@ function Extras({ phrase }) {
           <div className="info-ttl">🔄 別の言い方</div>
           {vars.map((v,i)=>(
             <div key={i} className="info-item">
-              <span className="info-label">{v.label}</span><Say text={v.text} />
-              {v.reading && <div className="info-sub">{v.reading}</div>}
+              {v.reading
+                ? <div><span className="info-label">{v.label}</span><Line text={v.text} reading={v.reading} /></div>
+                : <div><span className="info-label">{v.label}</span><Say text={v.text} /></div>}
             </div>
           ))}
         </div>
@@ -1308,8 +1707,7 @@ function StudyScreen({ state, setState, cats, onScore, onBack, onExit }) {
       {showAnswer && (
         <div>
           <div className="ans">
-            <div className="ans-main"><Say text={targetOf(phrase)} /></div>
-            {phrase.reading && <div className="ans-reading">{phrase.reading}</div>}
+            <Line text={targetOf(phrase)} reading={phrase.reading} cls="ans-main" />
             {phrase.short && <div className="ans-short"><span className="pill">⚡最短</span> <Say text={phrase.short} /></div>}
           </div>
           <Extras phrase={phrase} />
@@ -1406,8 +1804,7 @@ function PhraseRow({ phrase, cat, stat, flat }) {
         <span>{flat ? cat?.name : ''}</span>
         <span>{stat ? `😓${stat.again} 🤔${stat.hard} 😄${stat.easy}` : '未練習'}{weak && <span style={{color:'var(--danger)',fontWeight:700}}> 🔥苦手</span>}</span>
       </div>
-      <div className="row-en"><Say text={targetOf(phrase)} /></div>
-      {phrase.reading && <div className="info-sub">{phrase.reading}</div>}
+      <Line text={targetOf(phrase)} reading={phrase.reading} cls="row-en" />
       <div className="row-ja">{phrase.japanese}</div>
       {phrase.short && <div className="row-short"><span className="pill">⚡最短</span> <Say text={phrase.short} /></div>}
       {open
